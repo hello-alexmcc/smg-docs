@@ -132,3 +132,51 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts/doc-sync -p 't
 ```
 
 The adapted OME files retain Apache-2.0 licensing in [LICENSE](LICENSE).
+
+## Maintaining existing nightly PRs
+
+`docs-pr-maintenance.yml` sweeps every two hours at minute 11 UTC, after the
+nightly or CI completes, and on trusted maintainer/review-bot issue comments.
+Submitted reviews and inline replies are also picked up by the sweep. Set
+`DOCS_MAINTENANCE_ENABLED=false` to pause it. It selects up to 100 existing
+nightly PRs, including drafts, and runs at most four workers concurrently on
+`smg-org-runner-cpu`, using Fable with the same model and effort as discovery.
+
+Each worker authenticates the bot author, same-repository branch and full concern
+marker; pins docs main, SMG main, PR head and feedback; overlays only the original
+PR's Markdown onto trusted docs main; and repairs that single concern. New files
+outside the original PR are forbidden. The full PR still must be below 1,000
+changed lines, without a page-count cap. Overlapping changes on main require
+human conflict resolution instead of overwriting them.
+
+A fresh read-only model verifies accuracy, scope, placement, related pages and
+addressed review threads. A separate publisher imports only Markdown data,
+reapplies the guards, runs the type check and production build, and appends a
+DCO-signed bot commit with a normal push. Changed PR heads, source/docs revisions
+or feedback invalidate publication. Correct PRs may validate without a repair.
+Draft status stays unchanged; the workflow never approves or merges PRs. Only
+independently verified bot-only review threads can be resolved automatically.
+
+One status comment and a `Docs maintenance` check on the actual PR head record
+the outcome. Unchanged successful work is cached until source, docs, PR content
+or feedback changes. Three unsuccessful content rounds or three incomplete
+operational attempts stop retries and require human attention. `force=true`
+explicitly resumes one PR. Rejections cannot publish; workflow success alone is
+not proof of acceptance—inspect `result.json` and the PR check. Context, full
+patch, review verdict and publication result are retained for 14 days.
+
+Dispatch maintenance directly after merge, with `apply=false` to validate without
+repository writes. Before merge, the existing nightly workflow provides a branch
+entry point that calls exactly the same maintenance controller and worker:
+
+```sh
+gh workflow run nightly-doc-sync.yml --repo smg-project/smg-docs \
+  --ref codex/your-branch -f maintenance_pr=121 -f maintenance_apply=false
+```
+
+`maintenance_force` and `maintenance_feedback` optionally resume a stopped PR
+or supply source-backed feedback. On the maintenance workflow itself these
+inputs are `pr_number`, `apply`, `force`, and `feedback`. Force/feedback require
+one explicit PR number. Manual apply defaults to false; automatic sweeps apply
+repairs. The workflow uses `GITHUB_TOKEN` with read permissions for model work
+and scoped contents/pull-requests/checks write permissions for publication.
