@@ -153,8 +153,11 @@ human conflict resolution instead of overwriting them.
 A fresh read-only model verifies accuracy, scope, placement, related pages and
 addressed review threads. A separate publisher imports only Markdown data,
 reapplies the guards, runs the type check and production build, and appends a
-DCO-signed bot commit with a normal push. Changed PR heads, source/docs revisions
-or feedback invalidate publication. Correct PRs may validate without a repair.
+DCO-signed bot commit with a normal push. Changed PR heads, docs main, or
+feedback invalidate publication. The source revision stays pinned for the whole
+round and is recorded in the result and PR check; an advancing source branch
+invalidates the next sweep's cache rather than discarding completed model work.
+Correct PRs may validate without a repair.
 Draft status stays unchanged; the workflow never approves or merges PRs. Only
 independently verified bot-only review threads can be resolved automatically.
 

@@ -226,7 +226,8 @@ def state_body(state):
             f"Documentation maintenance: **{state['phase']}**. "
             f"Unsuccessful content rounds: {state['attempts']}/{MAX_ATTEMPTS}. "
             f"Operational attempts: {state.get('infrastructure_attempts', 0)}/{MAX_INFRASTRUCTURE_ATTEMPTS}.\n\n"
-            f"Head: `{state['head']}`; reviewed main: `{state['base']}`.\n\n"
+            f"Head: `{state['head']}`; reviewed main: `{state['base']}`.\n"
+            f"Reviewed SMG source: `{state.get('code_sha', 'unavailable')}`.\n\n"
             f"<pre>{html.escape(state.get('reason', ''))}</pre>\n\n"
             f"[Workflow evidence]({state['run_url']})\n\n"
             "Human review threads and CODEOWNER approval remain under repository policy.")
@@ -345,7 +346,7 @@ def context(pr):
                                   page["path"] for page in docs.doc_inventory(base)}),
                                   "new_page_reason": "Preserve the original concern's page scope; reviewer must verify placement."}})
     return {"number": pr["number"], "head": head, "base": base, "code_sha": code, "item": item,
-            "files": files, "source_patch": source_patch, "feedback": details, "state": state, "state_id": state_id,
+            "files": files, "source_patch": source_patch.splitlines(), "feedback": details, "state": state, "state_id": state_id,
             "extra_feedback": extra, "signature": signature(pr, details, extra),
             "tools_sha": os.environ["GITHUB_SHA"],
             "run_url": f"https://github.com/{repo()}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}
@@ -390,7 +391,7 @@ def prepare(number, directory, apply, force):
         if apply:
             save_state(ctx, {"phase": "working", "attempts": attempts - 1,
                              "infrastructure_attempts": ctx['infrastructure_attempts'], "head": ctx["head"],
-                             "base": ctx["base"], "run_url": ctx["run_url"],
+                             "base": ctx["base"], "code_sha": ctx["code_sha"], "run_url": ctx["run_url"],
                              "extra_feedback": ctx["extra_feedback"],
                              "reason": "Repair/validation in progress; no merge authorization implied."})
     reject_secrets(json.dumps(ctx))
@@ -400,7 +401,9 @@ def prepare(number, directory, apply, force):
 
 def live_match(ctx):
     """Reject stale writers rather than overwrite a new commit or ignore feedback."""
-    pr = get_pr(ctx['number'])
+    # Source is immutable for this round, like nightly discovery. Advancing the
+    # external source branch invalidates the next sweep's cache, not this review.
+    pr = {**get_pr(ctx['number']), 'code_sha': ctx['code_sha']}
     eligible(pr)
     details, _, _ = feedback(pr)
     if (pr["head"]["sha"] != ctx["head"] or pr["base"]["sha"] != ctx["base"]
@@ -463,7 +466,7 @@ def record_check(ctx, head, accepted, reason):
         "conclusion": "success" if accepted else "failure", "details_url": ctx["run_url"],
         "external_id": f"docs-maintenance:{ctx['number']}:{ctx['base']}",
         "output": {"title": "Validated documentation" if accepted else "Documentation needs repair",
-                   "summary": reason[:60000]}})
+                   "summary": f"Reviewed SMG source: `{ctx.get('code_sha', 'unavailable')}`.\n\n" + reason[:59000]}})
 
 
 def finish(ctx, directory, apply):
@@ -512,11 +515,12 @@ def finish(ctx, directory, apply):
         state = {"phase": "ready" if accepted else ("needs-human" if attempts >= MAX_ATTEMPTS else "needs-repair"),
                  "attempts": attempts, "infrastructure_attempts": 0,
                  "head": head, "base": ctx["base"], "reason": reason,
-                 "signature": signature(current, expected_details, ctx["extra_feedback"]),
+                 "signature": signature({**current, "code_sha": ctx["code_sha"]}, expected_details, ctx["extra_feedback"]),
+                 "code_sha": ctx["code_sha"],
                  "extra_feedback": ctx["extra_feedback"], "run_url": ctx["run_url"]}
         save_state(ctx, state)
     result = {"number": ctx["number"], "applied": apply, "published": head != ctx['head'],
-              "accepted": accepted, "head": head,
+              "accepted": accepted, "head": head, "code_sha": ctx["code_sha"],
               "base": ctx["base"], "review_base": ctx.get("review_base", ctx["base"]),
               "reason": reason, "resolved_bot_threads": resolved}
     (directory / "result.json").write_text(json.dumps(result, indent=2))
@@ -533,8 +537,8 @@ def published_pr(ctx, head):
     for attempt in range(12):
         current = get_pr(ctx['number'])
         eligible(current)
-        if current['base']['sha'] != ctx['base'] or current["code_sha"] != ctx["code_sha"]:
-            raise ValueError('Docs or source main changed after publication; a fresh review is required')
+        if current['base']['sha'] != ctx['base']:
+            raise ValueError('Docs main changed after publication; a fresh review is required')
         if current['head']['sha'] == head:
             return current
         if current['head']['sha'] != ctx['head'] or attempt == 11:

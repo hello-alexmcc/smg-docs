@@ -263,11 +263,39 @@ class PolicyTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 m.checked_threads({"addressed_threads": numbers}, ctx)
 
+    def test_source_advance_preserves_round_but_invalidates_next_sweep(self):
+        pr = pull()
+        details = {"threads": [], "failed_checks": []}
+        original = copy.deepcopy(pr)
+        ctx = {"number": 7, "head": pr["head"]["sha"], "base": pr["base"]["sha"],
+               "code_sha": pr["code_sha"], "signature": m.signature(pr, details),
+               "extra_feedback": "", "feedback": details, "attempts": 1, "run_url": "url"}
+        pr["code_sha"] = "c" * 40
+        with patch.object(m, "get_pr", return_value=pr), \
+                patch.object(m, "feedback", return_value=(details, {}, None)):
+            m.live_match(ctx)
+            self.assertEqual(m.published_pr(ctx, ctx['head']), pr)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'review.json').write_text(json.dumps({
+                **{key: True for key in m.docs.REVIEW_GATES}, 'reason': 'Verified pinned source',
+                'addressed_threads': []}))
+            with patch.dict(os.environ, {'BUILD_OK': 'true', 'GITHUB_STEP_SUMMARY': str(root / 'summary')}), \
+                    patch.object(m, 'publish_repair', return_value=ctx['head']), \
+                    patch.object(m, 'published_pr', return_value=pr), \
+                    patch.object(m, 'record_check'), patch.object(m, 'save_state') as save:
+                m.finish(ctx, root, True)
+            state = save.call_args.args[1]
+            self.assertEqual(state['code_sha'], ctx['code_sha'])
+            self.assertEqual(m.decision(state, m.signature(original, details)), 'cached')
+            self.assertEqual(m.decision(state, m.signature(pr, details)), 'work')
+            self.assertEqual(json.loads((root / 'result.json').read_text())['code_sha'], ctx['code_sha'])
+
     def test_stale_writer_cannot_publish(self):
         pr = pull()
         details = {"threads": []}
         ctx = {"number": 7, "head": pr["head"]["sha"], "base": pr["base"]["sha"],
-               "signature": m.signature(pr, details), "extra_feedback": ""}
+               "signature": m.signature(pr, details), "extra_feedback": "", "code_sha": pr["code_sha"]}
         with patch.object(m, "get_pr", return_value=pr), patch.object(m, "feedback", return_value=(details, {}, None)):
             self.assertEqual(m.live_match(ctx), pr)
             pr["head"]["sha"] = "c" * 40
