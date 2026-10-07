@@ -251,7 +251,7 @@ def output(**values):
 
 
 def apply_mode(inputs, event):
-    """Honor reusable-call inputs even when the caller runs an automatic sweep."""
+    """Honor manual apply inputs; only scheduled sweeps publish by default."""
     if inputs is None:
         inputs = {}
     if not isinstance(inputs, dict):
@@ -260,7 +260,7 @@ def apply_mode(inputs, event):
         if type(inputs['apply']) is not bool:
             raise ValueError('apply must be a boolean')
         return inputs['apply']
-    return event in {'schedule', 'issue_comment', 'workflow_run'}
+    return event == 'schedule'
 
 
 def select(number, force):

@@ -135,9 +135,8 @@ The adapted OME files retain Apache-2.0 licensing in [LICENSE](LICENSE).
 
 ## Maintaining existing nightly PRs
 
-`docs-pr-maintenance.yml` sweeps every two hours at minute 11 UTC, after the
-nightly or CI completes, and on trusted maintainer/review-bot issue comments.
-Submitted reviews and inline replies are also picked up by the sweep. Set
+`docs-pr-maintenance.yml` runs independently every two hours at minute 11 UTC.
+The sweep picks up trusted comments, submitted reviews, and inline replies. Set
 `DOCS_MAINTENANCE_ENABLED=false` to pause it. It selects up to 100 existing
 nightly PRs, including drafts, and runs at most four workers concurrently on
 `smg-org-runner-cpu`, using Fable with the same model and effort as discovery.
@@ -169,18 +168,16 @@ explicitly resumes one PR. Rejections cannot publish; workflow success alone is
 not proof of acceptance—inspect `result.json` and the PR check. Context, full
 patch, review verdict and publication result are retained for 14 days.
 
-Dispatch maintenance directly after merge, with `apply=false` to validate without
-repository writes. Before merge, the existing nightly workflow provides a branch
-entry point that calls exactly the same maintenance controller and worker:
+After merge, dispatch maintenance directly, with `apply=false` to validate without
+repository writes:
 
 ```sh
-gh workflow run nightly-doc-sync.yml --repo smg-project/smg-docs \
-  --ref codex/your-branch -f maintenance_pr=121 -f maintenance_apply=false
+gh workflow run docs-pr-maintenance.yml --repo smg-project/smg-docs \
+  --ref main -f pr_number=121 -f apply=false
 ```
 
-`maintenance_force` and `maintenance_feedback` optionally resume a stopped PR
-or supply source-backed feedback. On the maintenance workflow itself these
-inputs are `pr_number`, `apply`, `force`, and `feedback`. Force/feedback require
-one explicit PR number. Manual apply defaults to false; automatic sweeps apply
-repairs. The workflow uses `GITHUB_TOKEN` with read permissions for model work
+`force` optionally resumes a stopped PR and `feedback` supplies source-backed
+feedback. Both require one explicit PR number. Manual apply defaults to false;
+scheduled sweeps apply repairs. The workflow uses `GITHUB_TOKEN` with read
+permissions for model work
 and scoped contents/pull-requests/checks write permissions for publication.

@@ -177,13 +177,13 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(details['unresolved_threads'], ['T', 'external'])
         self.assertEqual(m.checked_threads({'addressed_threads': [1]}, {'feedback': details}), [])
 
-    def test_reusable_sweeps_honor_apply_false_for_every_caller_event(self):
+    def test_manual_apply_and_scheduled_defaults(self):
         for event in ['schedule', 'issue_comment', 'workflow_run', 'workflow_dispatch', 'push']:
             for number in ['', '1072']:
                 self.assertFalse(m.apply_mode({'apply': False, 'pr_number': number}, event))
                 self.assertTrue(m.apply_mode({'apply': True, 'pr_number': number}, event))
             for raw in ['{}', 'null']:
-                self.assertEqual(m.apply_mode(json.loads(raw), event), event in {'schedule', 'issue_comment', 'workflow_run'})
+                self.assertEqual(m.apply_mode(json.loads(raw), event), event == 'schedule')
         with self.assertRaises(ValueError):
             m.apply_mode({'apply': 'false'}, 'schedule')
 
