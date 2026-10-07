@@ -26,7 +26,7 @@ def pull():
 class PolicyTests(unittest.TestCase):
     def setUp(self):
         env = patch.dict(os.environ, {"GITHUB_REPOSITORY": "smg-project/smg-docs",
-                                      "SOURCE_ROOT": "/nonexistent/smg"})
+                                      "SOURCE_ROOT": "/nonexistent/smg", "EXTRA_FEEDBACK": ""})
         env.start()
         self.addCleanup(env.stop)
         base = patch.object(m, 'current_base', return_value='a' * 40)
