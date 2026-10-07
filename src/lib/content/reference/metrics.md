@@ -444,13 +444,13 @@ Serialized size of request buffers the router freed as soon as the request was d
 
 ### `smg_responses_stream_failures_total`
 
-Streaming `/v1/responses` requests whose stream ended with a `response.failed` terminal event. Newer than v1.11.0 (smg-project/smg#2730): it exists on current main but not in the v1.11.0 release.
+Streaming `/v1/responses` requests whose stream ended with a `response.failed` terminal event (smg-project/smg#2730).
 
 | Type | Labels |
 |------|--------|
 | Counter | `model`, `reason` |
 
-- `reason`: `stream_error` (the backend stream could not be read), `server_error` (the engine reported a failed generation, also used when only the finish reason says failed and no error object was built), or `other` (any other error code delivered to the client, for example `max_tool_calls_exceeded` from the internal MCP safety cap; the catch-all keeps the label set bounded)
+- `reason`: `stream_error` (the backend stream could not be read), `server_error` (the engine reported a failure without an error code of its own, or only the finish reason said failed and no error object was built), or `other` (any other error code delivered to the client, whether passed through from the engine's error or gateway-generated like `max_tool_calls_exceeded` from the internal MCP safety cap; the catch-all keeps the label set bounded)
 
 The counter increments only after the `response.failed` terminal was sent to the client: a stream that dies before its terminal is not counted, and the `response.completed` and `response.incomplete` terminals never count. It is recorded by the gRPC pipeline's Responses streaming conversion, which also serves ZMQ workers. Harmony-mode (gpt-oss) streaming reports failures as `error` events without a terminal and never records it; neither do non-streaming requests or Responses relayed from HTTP workers and external providers.
 
