@@ -317,6 +317,9 @@ def context(pr):
         if error.returncode == 1:
             raise ValueError('The source commit is not in the pinned SMG history') from error
         raise
+    source_patch = docs.source_patch(source)
+    if len(source_patch.encode()) > 2 * 1024 * 1024:
+        raise ValueError("Source patch exceeds 2 MiB; human evidence review required")
     fork = docs.git("merge-base", base, head)
     files = {}
     for line in docs.git("diff", "--name-status", fork, head).splitlines():
@@ -342,7 +345,7 @@ def context(pr):
                                   page["path"] for page in docs.doc_inventory(base)}),
                                   "new_page_reason": "Preserve the original concern's page scope; reviewer must verify placement."}})
     return {"number": pr["number"], "head": head, "base": base, "code_sha": code, "item": item,
-            "files": files, "feedback": details, "state": state, "state_id": state_id,
+            "files": files, "source_patch": source_patch, "feedback": details, "state": state, "state_id": state_id,
             "extra_feedback": extra, "signature": signature(pr, details, extra),
             "tools_sha": os.environ["GITHUB_SHA"],
             "run_url": f"https://github.com/{repo()}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}

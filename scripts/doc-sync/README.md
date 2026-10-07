@@ -143,7 +143,8 @@ nightly PRs, including drafts, and runs at most four workers concurrently on
 `smg-org-runner-cpu`, using Fable with the same model and effort as discovery.
 
 Each worker authenticates the bot author, same-repository branch and full concern
-marker; pins docs main, SMG main, PR head and feedback; overlays only the original
+marker; pins docs main, SMG main, PR head and feedback; supplies the introducing source
+commit diff; overlays only the original
 PR's Markdown onto trusted docs main; and repairs that single concern. New files
 outside the original PR are forbidden. The full PR still must be below 1,000
 changed lines, without a page-count cap. Overlapping changes on main require

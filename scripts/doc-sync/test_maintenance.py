@@ -415,6 +415,7 @@ class PublicationTests(unittest.TestCase):
                 patch.object(m, 'feedback', return_value=({'threads': []}, {}, None)):
             ctx = m.context(pr)
         self.assertEqual(ctx['code_sha'], self.source)
+        self.assertIn('+' + 'package example', ctx['source_patch'])
         self.assertEqual(ctx['item']['branch'], self.item['branch'])
         self.assertEqual(ctx['item']['placement']['canonical_pages'], [str(self.path)])
         self.assertTrue(m.restore(ctx))
