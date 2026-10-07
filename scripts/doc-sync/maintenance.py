@@ -199,7 +199,7 @@ def signature(pr, details, extra=""):
     substantive = {key: value for key, value in details.items()
                    if key not in {'unresolved_threads', 'protected_threads'}}
     return hashlib.sha256(json.dumps([pr["head"]["sha"], pr["base"]["sha"],
-                                     pr["code_sha"], substantive, extra], sort_keys=True).encode()).hexdigest()
+                                     pr["code_sha"], pr.get("title"), pr.get("body"), substantive, extra], sort_keys=True).encode()).hexdigest()
 
 
 def decision(state, digest, force=False):

@@ -158,6 +158,25 @@ class PolicyTests(unittest.TestCase):
             **details, 'unresolved_threads': ['external-thread'], 'protected_threads': ['T']}))
 
 
+    def test_feedback_filters_outsiders_and_protects_mixed_threads(self):
+        bot = {'author': {'__typename': 'Bot', 'login': 'claude'}, 'authorAssociation': 'NONE', 'body': 'Fix link'}
+        outsider = {'author': {'__typename': 'User', 'login': 'visitor'}, 'authorAssociation': 'NONE', 'body': 'Untrusted text'}
+        threads = [{'id': 'T', 'isResolved': False, 'comments': {'pageInfo': {'hasNextPage': False}, 'nodes': [bot, outsider]}},
+                   {'id': 'external', 'isResolved': False, 'comments': {'pageInfo': {'hasNextPage': False}, 'nodes': [outsider]}}]
+        response = {'data': {'repository': {'pullRequest': {'reviewThreads': {
+            'nodes': threads, 'pageInfo': {'hasNextPage': False}}}}}}
+        comments = [{'id': 1, 'user': {'login': 'visitor', 'type': 'User'}, 'author_association': 'NONE', 'body': 'Spend budget'}]
+        reviews = [{'id': 2, 'user': {'login': 'visitor', 'type': 'User'}, 'author_association': 'NONE',
+                    'body': 'External review', 'state': 'CHANGES_REQUESTED', 'commit_id': 'b' * 40}]
+        with patch.object(m.docs, 'pages', side_effect=[comments, reviews]), \
+                patch.object(m, 'api', return_value=response), patch.object(m, 'check_runs', return_value=[]):
+            details, _, _ = m.feedback(pull())
+        self.assertEqual(details['comments'], [])
+        self.assertEqual(details['reviews'], [])
+        self.assertEqual(details['threads'][0]['comments'], [bot])
+        self.assertEqual(details['unresolved_threads'], ['T', 'external'])
+        self.assertEqual(m.checked_threads({'addressed_threads': [1]}, {'feedback': details}), [])
+
     def test_reusable_sweeps_honor_apply_false_for_every_caller_event(self):
         for event in ['schedule', 'issue_comment', 'workflow_run', 'workflow_dispatch', 'push']:
             for number in ['', '1072']:
@@ -430,3 +449,9 @@ class PublicationTests(unittest.TestCase):
         self.assertEqual(self.git('show', '-s', '--format=%an <%ae>'), identity)
         self.assertEqual(self.git('show', '-s', '--format=%cn <%ce>'), identity)
         self.assertIn('Signed-off-by: ' + identity, self.git('show', '-s', '--format=%B'))
+
+    def test_edited_pr_description_invalidates_cached_success(self):
+        pr = self.pull(self.item, self.head)
+        digest = m.signature(pr, {})
+        pr['body'] += '\nChanged concern evidence'
+        self.assertNotEqual(m.signature(pr, {}), digest)
