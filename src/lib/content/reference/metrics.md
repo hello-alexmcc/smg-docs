@@ -181,6 +181,8 @@ sum(rate(smg_http_responses_total{path="/v1/responses"}[5m]))
 sum by (error_code) (rate(smg_http_responses_total{error_code!=""}[5m]))
 ```
 
+An SSE stream returns its response head before generation finishes, so a streaming `/v1/responses` request whose stream later ends with a `response.failed` terminal still counts as `2xx` in the success-rate query above. [`smg_responses_stream_failures_total`](#smg_responses_stream_failures_total) counts those failures.
+
 ---
 
 ### `smg_http_connections_active`
@@ -437,6 +439,25 @@ Serialized size of request buffers the router freed as soon as the request was d
 | Type | Labels |
 |------|--------|
 | Counter | None |
+
+---
+
+### `smg_responses_stream_failures_total`
+
+Streaming `/v1/responses` requests whose stream ended with a `response.failed` terminal event. Newer than v1.11.0 (smg-project/smg#2730): it exists on current main but not in the v1.11.0 release.
+
+| Type | Labels |
+|------|--------|
+| Counter | `model`, `reason` |
+
+- `reason`: `stream_error` (the backend stream could not be read), `server_error` (the engine reported a failed generation, also used when only the finish reason says failed and no error object was built), or `other` (any other error code delivered to the client, for example `max_tool_calls_exceeded` from the internal MCP safety cap; the catch-all keeps the label set bounded)
+
+The counter increments only after the `response.failed` terminal was sent to the client: a stream that dies before its terminal is not counted, and the `response.completed` and `response.incomplete` terminals never count. It is recorded by the gRPC pipeline's Responses streaming conversion, which also serves ZMQ workers. Harmony-mode (gpt-oss) streaming reports failures as `error` events without a terminal and never records it; neither do non-streaming requests or Responses relayed from HTTP workers and external providers.
+
+```promql
+# Delivered Responses stream failures, by reason
+sum by (reason) (rate(smg_responses_stream_failures_total[5m]))
+```
 
 ---
 
