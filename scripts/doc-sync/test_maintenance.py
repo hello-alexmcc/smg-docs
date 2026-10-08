@@ -121,7 +121,62 @@ class PolicyTests(unittest.TestCase):
             changed = copy.deepcopy(pr)
             changed[side]["sha"] = "c" * 40
             self.assertNotEqual(m.signature(changed, {"threads": []}), original)
-        self.assertNotEqual(m.signature(pr, {"threads": ["fix this"]}), original)
+        self.assertNotEqual(m.signature(pr, {"threads": [{"id": "T", "path": "metrics.md", "comments": [{"body": "fix this"}]}]}), original)
+
+    def test_cache_ignores_thread_positions_but_tracks_feedback(self):
+        thread = {'id': 'T', 'path': 'metrics.md', 'line': 12, 'number': 1,
+                  'isOutdated': False, 'comments': [{'body': 'Fix this'}]}
+        original = {'threads': [thread]}
+        moved = {'threads': [{**thread, 'line': None, 'number': 2, 'isOutdated': True}]}
+        digest = m.signature(pull(), original)
+        self.assertEqual(m.signature(pull(), moved), digest)
+        for field, value in [('id', 'new'), ('path', 'other.md'),
+                             ('comments', [{'body': 'New feedback'}])]:
+            with self.subTest(field=field):
+                changed = {'threads': [{**thread, field: value}]}
+                self.assertNotEqual(m.signature(pull(), changed), digest)
+
+    def test_finish_resolves_verified_threads_after_hunk_moves(self):
+        bot = {'author': {'__typename': 'Bot', 'login': 'claude'}, 'body': 'Fix link'}
+        thread = {'id': 'T', 'path': 'metrics.md', 'line': 12, 'number': 1,
+                  'isOutdated': False, 'comments': [bot]}
+        original = {'threads': [thread], 'failed_checks': []}
+        pr = pull()
+        ctx = {'number': 7, 'head': 'old', 'base': pr['base']['sha'], 'feedback': original,
+               'attempts': 1, 'extra_feedback': '', 'run_url': 'url', 'code_sha': pr['code_sha']}
+        for change in ['position', 'reply', 'edited', 'protected', 'missing']:
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as directory:
+                fresh = {'threads': [{**thread, 'line': None, 'number': 2, 'isOutdated': True}],
+                         'failed_checks': []}
+                if change == 'reply':
+                    fresh['threads'][0]['comments'] = [bot, {**bot, 'body': 'Another concern'}]
+                elif change == 'edited':
+                    fresh['threads'][0]['comments'] = [{**bot, 'body': 'Updated concern'}]
+                elif change == 'protected':
+                    fresh['protected_threads'] = ['T']
+                elif change == 'missing':
+                    fresh['threads'] = []
+                root = Path(directory)
+                (root / 'review.json').write_text(json.dumps({
+                    **{key: True for key in m.docs.REVIEW_GATES}, 'reason': 'Verified',
+                    'addressed_threads': [1]}))
+                with patch.dict(os.environ, {'BUILD_OK': 'true', 'GITHUB_STEP_SUMMARY': str(root / 'summary')}), \
+                        patch.object(m, 'publish_repair', return_value=pr['head']['sha']), \
+                        patch.object(m, 'published_pr', return_value=pr), patch.object(m, 'record_check'), \
+                        patch.object(m, 'feedback', return_value=(fresh, {}, None)), \
+                        patch.object(m, 'api') as api, patch.object(m, 'save_state') as save:
+                    m.finish(ctx, root, True)
+                expected = ['T'] if change == 'position' else []
+                self.assertEqual(json.loads((root / 'result.json').read_text())['resolved_bot_threads'], expected)
+                if expected:
+                    self.assertEqual(api.call_count, 1)
+                    self.assertEqual(api.call_args.args[2]['variables'], {'id': 'T'})
+                    self.assertEqual(m.decision(save.call_args.args[1], m.signature(pr, {
+                        'threads': [], 'failed_checks': []})), 'cached')
+                else:
+                    api.assert_not_called()
+                    if change in ['reply', 'edited']:
+                        self.assertEqual(m.decision(save.call_args.args[1], m.signature(pr, fresh)), 'work')
 
     def test_state_requires_bot_and_valid_budget(self):
         state = {"attempts": 2, "phase": "working", "head": "x", "base": "y", "run_url": "url"}

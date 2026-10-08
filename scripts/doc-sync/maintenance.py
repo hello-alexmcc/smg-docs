@@ -194,10 +194,16 @@ def check_runs(head):
     return [check for page in raw for check in page["check_runs"]]
 
 
+def stable_thread(thread):
+    """Compare feedback without positions GitHub recomputes after a repair push."""
+    return {key: thread.get(key) for key in ('id', 'path', 'comments')}
+
+
 def signature(pr, details, extra=""):
     """A cached review is invalidated by content, base, or substantive feedback."""
     substantive = {key: value for key, value in details.items()
                    if key not in {'unresolved_threads', 'protected_threads'}}
+    substantive['threads'] = [stable_thread(t) for t in details.get('threads', [])]
     return hashlib.sha256(json.dumps([pr["head"]["sha"], pr["base"]["sha"],
                                      pr["code_sha"], pr.get("title"), pr.get("body"), substantive, extra], sort_keys=True).encode()).hexdigest()
 
@@ -501,7 +507,9 @@ def finish(ctx, directory, apply):
             original_threads = {t["id"]: t for t in ctx["feedback"]["threads"]}
             fresh_threads = {t["id"]: t for t in fresh["threads"]}
             for thread in threads:
-                if (fresh_threads.get(thread) != original_threads[thread]
+                fresh_thread = fresh_threads.get(thread)
+                if (fresh_thread is None
+                        or stable_thread(fresh_thread) != stable_thread(original_threads[thread])
                         or thread in fresh.get('protected_threads', [])):
                     continue
                 api("graphql", "POST", {"query": "mutation($id:ID!){resolveReviewThread(input:{threadId:$id}){thread{id}}}",
