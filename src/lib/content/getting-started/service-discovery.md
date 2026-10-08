@@ -224,8 +224,8 @@ spec:
       labels:
         app: sglang-worker
     spec:
-      # Includes the preStop wait and the engine's shutdown time.
-      terminationGracePeriodSeconds: 165
+      # Includes the preStop wait, engine shutdown, and scheduling margin.
+      terminationGracePeriodSeconds: 180
       containers:
         - name: sglang
           image: lmsysorg/sglang:latest
@@ -257,7 +257,7 @@ The settle window does not keep the engine process alive or wait for its active 
 
 The worker example above delays SIGTERM with a `preStop` hook. Its illustrative 135-second wait allows 10 seconds for discovery to observe termination, the 5-second settle window, and up to 120 seconds for the longest remaining request. Size these values for your workload, including queued requests, and check that the image contains `sleep`. Configure the hook on each engine container, including vLLM workers, rather than only on the gateway.
 
-[Kubernetes runs `preStop` before sending TERM](https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/), and the pod's termination grace period includes the hook. The example gives the engine another 30 seconds to exit after the wait. Set `terminationGracePeriodSeconds` above the entire hook plus engine shutdown budget; an exhausted grace period ends in SIGKILL. A tested engine shutdown mode that stops admission and waits for active generations can replace the sleep.
+[Kubernetes runs `preStop` before sending TERM](https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/), and the pod's termination grace period includes the hook. The example reserves 30 seconds for engine shutdown after the wait, plus 15 seconds of scheduling margin. Adjust that margin for your environment. Set `terminationGracePeriodSeconds` above the entire hook plus engine shutdown budget; an exhausted grace period ends in SIGKILL. A tested engine shutdown mode that stops admission and waits for active generations can replace the sleep.
 
 Verify this with long streamed requests during a one-pod rollout: observe the worker leave routing, confirm its existing streams complete, then confirm the engine exits within the pod grace period. Discovery delays and unbounded streams need an explicit operational limit; a fixed sleep is not a guarantee against forced deletion or node failure. See [Worker Draining](../concepts/reliability/graceful-shutdown.md#worker-draining).
 
