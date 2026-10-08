@@ -64,6 +64,8 @@ The vLLM, SGLang, TokenSpeed and MLX gRPC servers come from the `smg-grpc-servic
 
     `--smg-grpc-mode` needs SGLang 0.5.16 or later; older releases use `--grpc-mode`, now a deprecated alias. In this mode SGLang also opens an HTTP sidecar on `--port + 1` (move it with `--smg-http-sidecar-port`).
 
+    This starts the default Python servicer. Setting `SMG_SGLANG_SERVICER_IMPL=rust` in the worker's environment serves the same contract from Rust instead; see [Rust SGLang Servicer](#rust-sglang-servicer).
+
 === "TensorRT-LLM"
 
     ```bash
@@ -142,6 +144,30 @@ For the selection to take effect, the worker's environment needs:
 - a vLLM whose gRPC launcher imports the package's servicer classes at module level — the stock shape, so an unmodified vLLM qualifies — or carries the check (`smg_grpc_servicer.vllm.resolve_servicer_impl`) in its own `serve_grpc`
 
 Misconfiguration fails loudly instead of silently serving Python: `smg serve --servicer-impl rust` refuses to start when `smg-grpc-servicer` is not importable or the installed vLLM's launcher would not be switched, and when `SMG_VLLM_SERVICER_IMPL=rust` reaches a worker where the switch never ran (a launcher file executed directly as `__main__`, or one that didn't import the package's servicer before defining `serve_grpc`), the Python servicer itself refuses to start.
+
+### Rust SGLang Servicer
+
+SGLang gRPC workers have the same choice: a Rust implementation serving the same gRPC contract as the default Python servicer. Like the vLLM switch, it is newer than v1.11.0: it exists on current main but not in the v1.11.0 wheels or engine images. One environment variable selects it on the unchanged entrypoint — every SGLang server flag stays the same:
+
+```bash
+SMG_SGLANG_SERVICER_IMPL=rust python -m sglang.launch_server \
+  --model-path meta-llama/Llama-3.1-8B-Instruct \
+  --host 0.0.0.0 \
+  --port 50051 \
+  --smg-grpc-mode
+```
+
+`SMG_SGLANG_SERVICER_IMPL` defaults to `python`, and a value other than `python` or `rust` fails startup. Unlike vLLM, there is no flag: `--servicer-impl` stays scoped to the vLLM gRPC servicer, and `smg serve` rejects `--servicer-impl rust` for every other backend. For SGLang the selection surface is the worker's environment — exporting the variable before `smg serve --backend sglang --connection-mode grpc` reaches its workers too, since worker environments inherit the shell's, and no flag clears an inherited value the way `--servicer-impl python` does for vLLM.
+
+In Rust mode, the entrypoint hands the process to the Rust servicer (`smg.servicer.SglangGrpcServer`, which needs the `smg` wheel installed alongside `smg-grpc-servicer[sglang]`) before any Python gRPC machinery exists: the Rust server speaks the gRPC contract on the worker's host and port, the scheduler runs headless in a spawned child over a same-host msgpack ZMQ connection, and Python keeps only the process lifecycle. As with vLLM, that ZMQ hop is inside the worker — the gateway still connects over `grpc://`, so this is not the [ZMQ direct backend](zmq-workers.md), and the gateway cannot tell the two implementations apart.
+
+What the scheduler's msgpack wire does not carry, the Rust path reports rather than emulates:
+
+- PD and EPD disaggregation stay with the Python servicer: a worker with a `disaggregation_mode` set, or with `language_only` or `encoder_only`, refuses to start on the Rust path.
+- Multimodal inputs and hidden states are refused per request, and LoRA loading answers UNIMPLEMENTED (the Python servicer does not serve it either).
+- SGLang's HTTP sidecar (profiling, `/metrics`) is not started, so nothing listens on `--port + 1`.
+
+`Embed`, `FlushCache` and profiling answer as on the Python servicer, and `SubscribeKvEvents` relays the ZMQ publisher SGLang was told to run with `--kv-events-config` (UNIMPLEMENTED when events are off).
 
 ---
 

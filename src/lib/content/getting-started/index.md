@@ -318,6 +318,8 @@ Use these when workers are not started via `smg serve`. Each command starts one 
 
     `--smg-grpc-mode` needs SGLang 0.5.16 or later; older releases use `--grpc-mode`, which is now a deprecated alias. In this mode SGLang also opens an HTTP sidecar (profiling, plus `/metrics` with `--enable-metrics`) on `--port + 1` (set `--smg-http-sidecar-port` to move it), so leave a gap between the ports of workers on the same host.
 
+    Setting `SMG_SGLANG_SERVICER_IMPL=rust` in the gRPC worker's environment serves the same contract from the Rust servicer instead of the default Python one (newer than v1.11.0, needs the `smg` wheel; the HTTP sidecar stays off on that path); see [Rust SGLang Servicer](grpc-workers.md#rust-sglang-servicer).
+
 === "TensorRT-LLM"
 
     gRPC serving is built into TensorRT-LLM, so it needs no SMG servicer.
