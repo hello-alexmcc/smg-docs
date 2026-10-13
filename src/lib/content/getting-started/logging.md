@@ -129,7 +129,7 @@ The event's own fields (`message` and any structured fields) sit at the top leve
 
 ## Request and Response Logs
 
-Every request that matches a route on the main listener is logged inside an `http_request` span that carries `method`, `uri`, `version`, and `request_id`, plus `status_code` and `latency` (microseconds) once the response is ready:
+Every request that matches a route on the main listener is logged inside an `http_request` span that carries `method`, `path`, `version`, `request_id` and, when tracing is on, `trace_id`, plus `status_code` and `latency` (microseconds) once the response is ready. That is the whole access record: no headers, no bodies, no prompts. The span carries the request path only, never the query string, so a credential a client mistakenly puts in `?api_key=` does not reach the log (smg-project/smg#3306 on `main`; v1.12.0 and earlier log the full URI in a `uri` field):
 
 | Target | Level | Message | When |
 |--------|-------|---------|------|
