@@ -64,8 +64,8 @@ def current_base():
 
 
 def current_code():
-    """Resolve the latest published stable source revision, never development main."""
-    return releases.latest_stable()["sha"]
+    """Pin current SMG main for working-version documentation."""
+    return releases.main_source()["sha"]
 
 
 def checkout_code(sha):
@@ -77,12 +77,14 @@ def checkout_code(sha):
     return sha
 
 
-def get_pr(number):
+def get_pr(number, code_sha=None):
     """Keep PR identity metadata, but pin source freshness to the actual branch."""
     pr = api(f"repos/{repo()}/pulls/{number}")
     pr["base"]["sha"] = current_base()
-    pr["code_sha"] = current_code()
-    pr["source_release"] = releases.latest_stable()
+    if code_sha is not None and not re.fullmatch(r"[0-9a-f]{40}", code_sha):
+        raise ValueError("Expected an immutable SMG source commit")
+    pr["code_sha"] = code_sha if code_sha is not None else current_code()
+    pr["source_target"] = {"version": "main", "sha": pr["code_sha"]}
     return pr
 
 
@@ -221,7 +223,7 @@ def signature(pr, details, extra=""):
     # never feed untrusted comment bodies to the model.
     if pr.get('draft'):
         substantive['unresolved_threads'] = sorted(details.get('unresolved_threads', []))
-    return hashlib.sha256(json.dumps(["released-contract-v1", pr["head"]["sha"], pr["base"]["sha"],
+    return hashlib.sha256(json.dumps(["versioned-main-contract-v2", pr["head"]["sha"], pr["base"]["sha"],
                                      pr["code_sha"], pr.get("title"), pr.get("body"), pr.get("draft"), substantive, extra], sort_keys=True).encode()).hexdigest()
 
 
@@ -307,7 +309,7 @@ def select(number, force):
         try:
             source, _, _ = eligible(pr)
             if not releases.contains(source, code):
-                print(f"Deferring PR #{pr['number']}: source change is not in the latest stable release")
+                print(f"Deferring PR #{pr['number']}: source change is not in SMG main")
                 return None
             details, state, _ = feedback(pr)
         except ValueError as error:
@@ -349,8 +351,6 @@ def context(pr):
             raise ValueError('The source commit is not in the pinned SMG history') from error
         raise
     source_patch = docs.source_patch(source)
-    if len(source_patch.encode()) > 2 * 1024 * 1024:
-        raise ValueError("Source patch exceeds 2 MiB; human evidence review required")
     fork = docs.git("merge-base", base, head)
     files = {}
     for line in docs.git("diff", "--name-status", fork, head).splitlines():
@@ -378,6 +378,7 @@ def context(pr):
     # Repairs must update the authenticated original branch, including legacy PRs.
     item["branch"] = pr["head"]["ref"]
     item['source_release'] = pr.get('source_release')
+    item['source_target'] = pr.get('source_target') or {'version': 'main', 'sha': code}
     return {"number": pr["number"], "head": head, "base": base, "code_sha": code, "item": item,
             "files": files, "source_patch": source_patch.splitlines(), "feedback": details, "state": state, "state_id": state_id,
             "extra_feedback": extra, "signature": signature(pr, details, extra),
@@ -402,7 +403,7 @@ def restore(ctx, bundle=None):
 
 def prepare(number, directory, apply, force):
     """Reserve an operational attempt; charge content only after validation finishes."""
-    pr = get_pr(number)
+    pr = get_pr(number, os.environ.get("MAINTENANCE_SOURCE_SHA"))
     directory.mkdir(parents=True, exist_ok=True)
     if pr['state'] != 'open':
         (directory / 'context.json').write_text(json.dumps({'number': number, 'deferred': 'PR is closed'}))
@@ -410,7 +411,7 @@ def prepare(number, directory, apply, force):
         return
     source, _, _ = eligible(pr)
     if not releases.contains(source, pr['code_sha']):
-        (directory / 'context.json').write_text(json.dumps({'number': number, 'deferred': 'Source change is unreleased'}))
+        (directory / 'context.json').write_text(json.dumps({'number': number, 'deferred': 'Source change is not in SMG main'}))
         output(work='false', cached='false')
         return
     try:

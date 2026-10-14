@@ -42,6 +42,18 @@ class PolicyTests(unittest.TestCase):
         self.promotion = promotion.start()
         self.addCleanup(promotion.stop)
 
+    def test_preparation_reuses_setup_sha_but_default_lookup_stays_fresh(self):
+        with patch.object(m, 'api', side_effect=lambda _: copy.deepcopy(pull())), \
+                patch.object(m, 'current_code', return_value='c' * 40) as live:
+            pinned = m.get_pr(7, 'd' * 40)
+            self.assertEqual(pinned['code_sha'], 'd' * 40)
+            self.assertEqual(pinned['source_target'], {'version': 'main', 'sha': 'd' * 40})
+            live.assert_not_called()
+            self.assertEqual(m.get_pr(7)['code_sha'], 'c' * 40)
+            live.assert_called_once()
+            with self.assertRaisesRegex(ValueError, 'immutable'):
+                m.get_pr(7, 'main')
+
     def test_only_the_documentation_repository_is_supported(self):
         self.assertEqual(m.repo(), "smg-project/smg-docs")
         for other in ["smg-project/smg", "fork/ome-docs"]:
@@ -646,6 +658,19 @@ class PublicationTests(unittest.TestCase):
         self.assertTrue(m.restore(ctx))
         self.assertEqual(self.path.read_text(), 'Unfixed PR\n')
         self.assertEqual(self.code_git('rev-parse', 'HEAD'), self.source)
+
+    def test_large_source_evidence_is_preserved_without_exhausting_budget(self):
+        pr = self.pull(self.item, self.head)
+        evidence = '+' + 'x' * (3 * 1024 * 1024)
+        with patch.dict(os.environ, {'GITHUB_REPOSITORY': 'smg-project/smg-docs',
+                'GITHUB_SHA': 'c' * 40, 'GITHUB_RUN_ID': '1'}), \
+                patch.object(m.docs, 'mutate_git'), \
+                patch.object(m.docs, 'source_patch', return_value=evidence), \
+                patch.object(m, 'feedback', return_value=({'threads': []}, {}, None)):
+            ctx = m.context(pr)
+        self.assertEqual(ctx['source_patch'], [evidence])
+        self.assertEqual(ctx['item']['source_target']['version'], 'main')
+        self.assertTrue(m.restore(ctx))
 
     def test_legacy_context_and_repair_preserve_original_branch(self):
         legacy = self.item["branch"].replace("docs/", "codex/", 1)
