@@ -65,8 +65,11 @@ This request is attributed to `team-red`, distinct from a request authenticated 
 `--tenant-api-key` value, is rejected with `401 Unauthorized` and an empty body. Tenant
 keys authenticate serving endpoints only — `/v1/chat/completions`, `/v1/completions`,
 `/v1/embeddings`, etc. They do not grant access to admin/management routes (`/workers`,
-`/flush_cache`, and similar); that surface requires either the shared `--api-key` or
-control-plane authentication.
+`/flush_cache`, and similar). When control-plane authentication is enabled, those
+routes require a control-plane credential with the `admin` role. Otherwise, they
+accept the shared `--api-key` if configured. With neither control-plane auth nor any API keys configured,
+those routes are open; with only `--tenant-api-key` configured, every admin request
+is rejected with `401`.
 
 `GET /v1/models` is a public route and answers without a key (see [List Models](#list-models)).
 
@@ -306,6 +309,12 @@ when a worker rejects a streaming request, SMG keeps the worker's content type
 (`application/json`, not `text/event-stream`) so SSE clients still see the error body.
 If generation fails after a gRPC stream has started, SMG sends
 `data: {"error": {"message": "...", "type": "internal_error"}}` followed by `data: [DONE]`.
+
+Starting with v1.13.0, a quiet open SSE response can contain `: ping` comments
+between events. SMG sends them after 15 seconds of silence by default, including
+while waiting for the first token. SSE clients should ignore comment lines.
+Configure or disable them with
+[`--sse-keepalive-secs`](../configuration.md#streaming-keepalives).
 
 #### Stream Usage
 
