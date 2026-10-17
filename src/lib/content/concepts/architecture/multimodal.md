@@ -266,8 +266,8 @@ Neither setting enables a modality the model does not support. When you raise a 
 | Inkling image patches per request | 32,768 | `in_patch_limit` in the preprocessor config (smg-project/smg#2102) |
 | Media fetch | 10 seconds per URL | Fixed |
 
-!!! warning "No domain allowlist on the router path"
-    When SMG preprocesses media, it fetches any `http://` or `https://` URL a request names. If clients are untrusted, restrict the gateway's outbound network access. On the worker path, vLLM's `--allowed-media-domains` applies with the `inprocess` and `redis` processors; a worker running `--mm-processor smg` also fetches from any host, so restrict its outbound access the same way.
+!!! warning "Fetch policy on the router path"
+    When SMG preprocesses media, it fetches the `http://` or `https://` URLs a request names under the gateway's own fetch policy: every hop must resolve to a public address unless `--mm-allow-private-media-hosts` is set, and must be on the list when `--mm-allowed-media-domains` is set (see [Media Processing and Limits](../../reference/configuration.md#media-processing-and-limits)). Without the list the gateway fetches from any public host, so restrict its outbound network access when clients are untrusted. On the worker path, vLLM's `--allowed-media-domains` applies with the `inprocess` and `redis` processors; a worker running `--mm-processor smg` also fetches from any host, so restrict its outbound access the same way.
 
 ### In-Flight Media Budget
 
