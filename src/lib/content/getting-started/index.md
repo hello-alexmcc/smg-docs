@@ -687,6 +687,7 @@ The chart creates these resources (names assume the release is called `smg`):
 A few chart behaviors to know:
 
 - The router container runs the gateway image, so it accepts the same flags as `smg launch` from pip. `router.extraArgs` appends flags the values file does not cover.
+- `router.parser` passes `--parser` (`symphony` or `legacy`) when set. Left empty, the chart's default, it renders no flag, and the router follows its image's own default: Symphony on current images, the per-model parsers on images from before Symphony became the default.
 - The chart's schema limits `router.policy` to `cache_aware`, `round_robin`, `power_of_two`, `manual`, `random`, and `prefix_hash`.
 - `global.image.tag` overrides the gateway version, which defaults to the chart's `appVersion`.
 - Engine images for `workers[]` resolve to `ghcr.io/<repository>:<tag>`, and the repository defaults to `global.image.repository` (`lightseekorg/smg`). GHCR has no engine release images under that name after 1.9.0, so set `image.repository: smg-project/smg` next to each worker's `image.tag`. The chart's worker examples still pin 1.3.3 images.

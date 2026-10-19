@@ -278,7 +278,7 @@ smg launch \
   --reasoning-parser deepseek_r1
 ```
 
-SMG picks the parser from the model name by default; `--reasoning-parser` overrides that for every model. Separation is on by default, so a plain request is enough:
+SMG picks the parser from the model name by default; `--reasoning-parser` overrides that for the models [Symphony's registry](../concepts/architecture/grpc-pipeline.md#which-table-reads-a-model) does not know (for every model under `--parser legacy`). Separation is on by default, so a plain request is enough:
 
 ```bash
 curl http://localhost:30000/v1/chat/completions \
@@ -374,7 +374,7 @@ To have the gateway execute MCP tools on `/v1/responses`, add `--mcp-config-path
 
 ### Per-Model Parsers
 
-`--tool-call-parser` and `--reasoning-parser` apply to every model. When one gateway serves several model families, set parsers per model through the worker API instead. Labels on the worker registration override the flags for that worker's model:
+`--tool-call-parser` and `--reasoning-parser` apply to every model [Symphony's registry](../concepts/architecture/grpc-pipeline.md#which-table-reads-a-model) does not know (to every model under `--parser legacy`). When one gateway serves several model families, set parsers per model through the worker API instead. Labels on the worker registration override the flags for that worker's model:
 
 ```bash
 curl -X POST http://localhost:30000/workers \
