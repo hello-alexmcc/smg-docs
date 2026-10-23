@@ -40,7 +40,7 @@ Add randomness to backoff timing to prevent thundering herd problems.
 
 ### :material-filter: Smart Selection
 
-Only retry status codes that are likely to succeed on another attempt, and never a response whose cause cannot clear within a backoff window.
+Only retry status codes that are likely to succeed on another attempt, and never a response whose cause cannot clear within a backoff window. A worker's own `500` is never replayed on that worker.
 
 </div>
 
@@ -68,9 +68,9 @@ Without retries, every transient failure becomes a client-visible error. With re
 3. The next attempt runs worker selection again. Workers that are unhealthy, have an open circuit breaker, or are vetoed by overload protection are skipped. So are the workers the request already failed on, as long as another available worker is left.
 4. When a response is not retried, or no attempts remain, SMG returns it to the client.
 
-Skipping the workers a request failed on applies even under deterministic affinity: when `cache_aware` has the prompt's prefix cached on the failed worker, or a `consistent_hashing` routing key maps to it, the retry moves to another worker instead of going straight back. When every available worker has already been tried, including when the pool has a single worker, the retry selects among all of them again.
+Skipping the workers a request failed on applies even under deterministic affinity: when `cache_aware` has the prompt's prefix cached on the failed worker, or a `consistent_hashing` routing key maps to it, the retry moves to another worker instead of going straight back. When every available worker has already been tried, including when the pool has a single worker, the retry selects among all of them again — except a worker that answered the request with its own `500`, which is never selected for that request again (see [When a Worker Answers 500](#when-a-worker-answers-500)).
 
-There are two exceptions. A request targeted with [`X-SMG-Target-Worker`](../routing/load-balancing.md#routing-headers) is retried on the worker it targets. PD mode does not skip tried workers: each attempt selects its prefill/decode pair from all available workers, so a retry can pick the same pair again.
+There are two exceptions. A request targeted with [`X-SMG-Target-Worker`](../routing/load-balancing.md#routing-headers) is retried on the worker it targets. PD mode does not skip tried workers: each attempt selects its prefill/decode pair from all available workers, so a retry can pick the same pair again. A worker's own `500` overrides both exceptions; only HTTP PD mode retries a `500` like any other status (see [When a Worker Answers 500](#when-a-worker-answers-500)).
 
 `--retry-max-retries` counts **attempts, including the first**: the default `5` allows the initial attempt plus up to four retries, and `1` disables retries.
 
@@ -79,6 +79,14 @@ A worker that has returned a success status and started streaming its response i
 HTTP-router responses relayed from a worker carry an `x-smg-routed-worker-id` header with the URL of the worker that produced them (the decode worker in PD mode), so a client can see where the final attempt landed.
 
 Responses served by gRPC and ZMQ workers carry the same header when the final attempt succeeds, naming that attempt's worker by its registered `grpc://` or `ipc://` URL (the decode worker in PD mode). Their error responses, and Responses API responses, do not carry it. The [Routed Worker Header](../routing/sticky-sessions.md#routed-worker-header) section covers the header in detail, including version availability.
+
+### When a Worker Answers 500
+
+A `500` a worker produced itself — its own response on the HTTP wire, or a gRPC `INTERNAL` status from the engine — is the worker's definitive answer for the request: replaying the same payload on the same worker costs the same work for the same answer. Retries of the request move to other available workers and never return to a worker that answered `500`, however many attempts remain. This exclusion never relaxes: it holds when every other worker has already been tried, for a request targeted with `X-SMG-Target-Worker`, and in PD mode on gRPC workers, where the prefill/decode pair that gave the answer is excluded together. It is also per request: the worker stays selectable for other requests, and its circuit breaker takes the request's one failure as usual.
+
+When no other worker can take the attempt — the pool has a single worker, or every alternative is unavailable, unable to serve the request, or has itself answered `500` — the `500` is returned to the client at once, skipping the remaining attempts and their backoff. The HTTP router relays the response as the worker sent it, body included.
+
+Only the worker's own `500` is definitive. A `500` the gateway synthesizes for a failed connection, and a worker-sent `502`, `503`, or `504` stay replayable on the same worker under the normal rules. The rule covers HTTP workers in regular mode and gRPC and ZMQ workers; for HTTP workers in PD mode and for external providers, a `500` is retried like any other [retryable status](#retryable-status-codes).
 
 ### Where Retries Apply
 
@@ -129,12 +137,14 @@ SMG retries responses with these status codes. The list is global: per-worker `r
 |------|---------|---------------|
 | `408` | Request Timeout | Temporary network issue |
 | `429` | Too Many Requests | Worker temporarily overloaded |
-| `500` | Internal Server Error | Transient server issue |
+| `500` | Internal Server Error | Transient server issue; never replayed on a worker that answered it |
 | `502` | Bad Gateway | Upstream temporarily unavailable |
 | `503` | Service Unavailable | Service temporarily down |
 | `504` | Gateway Timeout | Upstream timeout |
 
-SMG's own errors use these codes too. In regular HTTP mode, a failed connection to the worker and an upstream timeout are both a `500`, and in PD mode a transport failure on either leg is a `502`; on the HTTP and gRPC routers, "no available workers" (every candidate unhealthy or circuit-open) is a `503`.
+SMG's own errors use these codes too. In regular HTTP mode, a failed connection to the worker is a `500`, and a connect timeout, or a worker connection the OS gives up on, is a `504`; in PD mode a transport failure on either leg, those timeouts included, is a `502`; on the HTTP and gRPC routers, "no available workers" (every candidate unhealthy or circuit-open) is a `503`. The request's own timeout — `--request-timeout-secs`, or the worker's `timeout_secs`, running out — is a `504` in both modes, returned without a retry (see [Never Retried](#never-retried)).
+
+A `500` the gateway synthesizes is not the worker's own answer and stays replayable on that worker; see [When a Worker Answers 500](#when-a-worker-answers-500).
 
 Requests with other status codes (e.g., 400 Bad Request, 401 Unauthorized) are **not retried** because they would likely fail again.
 
@@ -145,6 +155,7 @@ Some responses carry a retryable status but go straight back to the client, beca
 - **Worker overload sheds**: `503` with error code `worker_overload_protection_shed` and a `Retry-After` header. The overload veto only changes when worker loads are polled again. See [Overload Protection](overload-protection.md).
 - **Tenant rate-limit denials** (gRPC router): `429` with `tenant_rate_limit_exceeded`. A tenant's budget is reserved once per request, before dispatch, so a denial is returned with its `Retry-After`, and retry attempts never reserve again. See [Tenant Rate Limiting](tenant-rate-limiting.md).
 - **Admission rejections**: `429` `admission_queue_full` and `503` `admission_queue_timeout` come from the admission layer in front of the router and never reach the retry loop. See [Rate Limiting](rate-limiting.md).
+- **Request timeouts**: `504` when the request's own timeout (`--request-timeout-secs`, or the worker's `timeout_secs`) runs out. The timeout bounds how long the request may take, so a replay on another worker could only hold the client through a second timeout. A `504` from a connect timeout, or from a worker connection the OS gives up on, is the worker's failure, not the request's bound, and is retried.
 - A few other gateway errors that another attempt cannot fix are marked terminal the same way.
 
 ---
