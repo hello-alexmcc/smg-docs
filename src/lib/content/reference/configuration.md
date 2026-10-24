@@ -171,6 +171,14 @@ Absolute per-worker ceilings, evaluated once per load report rather than per req
 
 An `overload` block on a worker spec overrides these values per signal, and keeps protection on for that worker even under `--disable-worker-overload-protection`. Protection needs load reports, so the load monitor keeps polling workers that have it on (see [Load Monitoring Configuration](#load-monitoring-configuration)).
 
+Two liveness vetoes stand beside the overload thresholds, on by default and read from the transport rather than from load reports; see [When a Worker Dies or Loses Its Link](../concepts/reliability/overload-protection.md#when-a-worker-dies-or-loses-its-link) for the rules in full.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--worker-stall-secs` | `2` | Seconds without any contact from a worker (a load poll, a health probe, a KV event, a response) after which a transport failure excludes it from routing as unreachable; the first successful contact re-admits it. `0` does not switch the rule off: it removes the silence requirement, so the first transport failure vetoes the worker. |
+| `--worker-wedge-secs` | `3` | Seconds without a token or a completion from a worker with requests in flight whose waiting queue grows, or whose in-flight pile grows or is four deep, after which new requests stop being routed to it until it makes progress. The bound stretches to the time its in-flight prompts may still need in prefill, up to `120` seconds; the pile counts streaming gRPC generations only. The same bound, read per request, is how long a prefill side of a disaggregated dispatch may produce nothing before the request fails over. `0` disables the rule and that bound. |
+| `--worker-stale-secs` | `15` | Seconds without any contact from a worker whose KV-event stream pushes load records, after which it is excluded from routing as unreachable until it is heard from again. Workers that never pushed a record are not judged by it. Keep it above `--load-monitor-interval`. `0` disables the rule. |
+
 How the overload settings differ from the other load thresholds:
 
 | Setting | Scope | At the threshold |
