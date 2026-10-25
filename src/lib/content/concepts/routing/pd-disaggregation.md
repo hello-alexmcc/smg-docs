@@ -414,7 +414,7 @@ Before a gRPC PD or EPD dispatch goes out, SMG claims one room for each backend 
 
 ### Context Length (gRPC)
 
-On the gRPC path, SMG counts the prompt tokens itself and rejects a prompt longer than the model's context window with 400 `context_length_exceeded` before dispatch. In PD mode the smaller window of the two legs applies. Workers that advertise no window are not checked, and the HTTP path leaves the check to the engine.
+On the gRPC path, SMG counts the prompt tokens itself and rejects a prompt longer than the model's context window with 400 `context_length_exceeded` before dispatch. In PD mode the smaller window of the two legs applies. Workers that advertise no window are not checked, and the HTTP path leaves the check to the engine. Unreleased: current main pairs the request only over the compatible prefill and decode workers whose advertised windows both hold the prompt, so the refusal comes only when no compatible pair does, and the message names the largest pair window; a leg that advertises no window stays eligible.
 
 ### Error Codes
 

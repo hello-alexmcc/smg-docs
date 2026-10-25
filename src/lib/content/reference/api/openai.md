@@ -859,7 +859,7 @@ The rule code in the last column names the rule in SMG's source and tests; only
 | z.ai GLM-5.3 | `thinking.type: disabled` | `thinking_disabled_not_supported` |
 | z.ai | A tool whose `type` is not `function` | `tool_type_not_supported` |
 | z.ai | A `file_url` content part (SMG does not fetch files for the model) | `content_part_not_supported` |
-| z.ai (gRPC) | `max_completion_tokens` (or `max_tokens`) larger than the context window the selected worker advertises | `context_length_exceeded` |
+| z.ai (gRPC) | `max_completion_tokens` (or `max_tokens`) larger than the context window the selected worker advertises (unreleased: on current main, larger than every window the eligible workers advertise, since selection skips the workers whose window cannot hold it) | `context_length_exceeded` |
 | DeepSeek V4 | `reasoning_effort` or `thinking.effort` outside `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`; V4.1 also takes an integer budget from 1 to 100 | `reasoning_effort_not_allowed` |
 | DeepSeek V4 | `chat_template_kwargs.thinking` or `enable_thinking` that is neither a boolean nor `null` | `invalid_thinking_override` |
 | DeepSeek V4 | `chat_template_kwargs.thinking` and `enable_thinking` that disagree | `conflicting_thinking_overrides` |
@@ -920,7 +920,7 @@ itself produced the error.
 |--------|--------|---------------|
 | 400 | `400` | Request validation failed: a field range, a cross-field rule (`stream_options` without `stream`, `top_logprobs` without `logprobs`, a `tool_choice` naming a missing tool, ...), a non-object `json_schema`, or a [provider-profile](#provider-profiles) rule |
 | 400 | `json_parse_error` | The body could not be parsed into the request type |
-| 400 | `context_length_exceeded` | gRPC: the longest prompt is longer than the context window the selected worker advertises (the tighter leg governs in PD, and each prompt of a batched completion counts on its own). Workers that advertise no window are not checked |
+| 400 | `context_length_exceeded` | gRPC: the longest prompt is longer than the context window the selected worker advertises (the tighter leg governs in PD, and each prompt of a batched completion counts on its own). Workers that advertise no window are not checked. Unreleased: current main selects only among the workers (in PD, the compatible pairs) whose advertised windows hold the prompt, so the refusal comes only when no eligible window does, and the message names the largest; a worker that advertises no window stays eligible |
 | 400 | `unsupported_content_part` | gRPC: a content part SMG cannot render |
 | 400 | `audio_output_not_supported`, `unsupported_output_modality` | gRPC: `return_audio: true` or a non-`text` entry in `modalities`; gRPC workers produce text only |
 | 400 | `multimodal_not_supported` | gRPC: the selected engine does not accept one of the request's input modalities |
