@@ -209,7 +209,7 @@ Prefill-decode (PD) disaggregation runs prefill and decode on separate workers. 
 | Format | `URL [BOOTSTRAP_PORT]` |
 | Multiple | Yes (repeat the flag) |
 
-The token after the URL is read as the bootstrap port only if it is a port number or `none`; leaving it out also means no bootstrap port. Used in PD and EPD modes.
+The token after the URL is read as the bootstrap port only if it is a port number or `none`; leaving it out, like `none`, registers the leg without one. A leg registered without a port is not left without one when its partners rendezvous on a bootstrap server: for a SGLang or TokenSpeed prefill leg, a vLLM prefill leg on the Mooncake connector, and an encode leg, the request path hands the partners the default port `8998`, and the gateway probes that port once after registration, as it probes a registered one (a vLLM prefill leg on NIXL, MoRI-IO or a KV store is handed no port). Used in PD and EPD modes.
 
 **Examples**:
 ```bash
