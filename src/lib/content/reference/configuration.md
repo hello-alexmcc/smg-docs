@@ -89,7 +89,7 @@ Routing flags configure the default policy (`--policy`). In PD mode, `--prefill-
 | `power_of_two` | Samples two healthy workers and takes the one with the lower least-load expected wait. Needs at least two workers unless service discovery or IGW mode is on. |
 | `least_load` | The worker with the lowest expected wait: queued plus in-flight token work divided by throughput, plus a KV-pressure term. See [Least Load Policy Options](#least-load-policy-options). |
 | `prefix_hash` | Hashes the request's leading tokens onto a consistent-hash ring and walks away from overloaded workers. |
-| `consistent_hashing` | Consistent-hash ring keyed on the request's routing key or, without one, on its `Authorization`, `X-Forwarded-For`, or `Cookie` header. `X-SMG-Target-Worker` picks a worker by index; a request with none of these goes to a random worker. |
+| `consistent_hashing` | Consistent-hash ring keyed on the request's routing key or, without one, on its `X-Forwarded-For` or `Cookie` header (`Authorization` identifies a tenant or a service account, not a session, and is not hashed). `X-SMG-Target-Worker` picks a worker by index; a request with none of these goes to a random worker. |
 | `manual` | A sticky map from routing key to worker with idle eviction. First-seen keys are placed by `--assignment-mode`. |
 | `bucket` | Maps request length (tokens, or characters when untokenized) to per-worker length buckets whose boundaries adapt every 5 seconds; picks the least-loaded worker when the `--balance-*` imbalance check fires. |
 
