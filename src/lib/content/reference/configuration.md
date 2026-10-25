@@ -716,7 +716,7 @@ For HTTPS on the gateway:
 
 ### Client mTLS
 
-The Rust CLI has no flags for a client certificate or CA bundle toward workers. The Python launcher provides `--client-cert-path` and `--client-key-path` (set together) and `--ca-cert-paths`; see [Python Launcher Differences](#python-launcher-differences) and [Configure TLS](../getting-started/tls.md). These flags act on the gateway's HTTPS connections (HTTP workers, external providers); the gRPC channel to workers is plaintext and ignores them, and a `grpcs://` worker URL fails to connect. See [Gateway to gRPC Workers](../getting-started/tls.md#gateway-to-grpc-workers).
+The released Rust CLIs, through v1.13.0, have no flags for a client certificate or CA bundle toward workers; the Python launcher provides `--client-cert-path` and `--client-key-path` (set together) and `--ca-cert-paths`. Unreleased: current main's Rust CLI accepts the same three flags under its `TLS/mTLS Security` help heading (smg-project/smg#3570). See [Python Launcher Differences](#python-launcher-differences) and [Configure TLS](../getting-started/tls.md). These flags act on the gateway's HTTPS connections (HTTP workers, external providers); the gRPC channel to workers is plaintext and ignores them, and a `grpcs://` worker URL fails to connect. See [Gateway to gRPC Workers](../getting-started/tls.md#gateway-to-grpc-workers).
 
 ---
 

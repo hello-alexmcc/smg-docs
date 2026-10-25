@@ -24,11 +24,11 @@ SMG supports TLS configurations for securing communications:
 | Configuration | Purpose | Status |
 |---------------|---------|--------|
 | **Server TLS** | HTTPS for client → gateway communication | Available |
-| **Client mTLS** | Mutual TLS for gateway → HTTP worker communication | Python launcher only |
+| **Client mTLS** | Mutual TLS for gateway → HTTP worker communication | Python launcher; the Rust binary on current main (unreleased) |
 | **gRPC worker transport** | Gateway → gRPC worker (`grpc://`) connections | Plaintext; mTLS through a service mesh |
 
 !!! info "Client mTLS"
-    The client certificate flags (`--client-cert-path`, `--client-key-path`, and `--ca-cert-paths`) exist only in the Python launcher: `smg launch` from pip, and the container image. The Rust `smg` binary has no client certificate flags in v1.11.0. See [Client mTLS to Workers](#client-mtls-to-workers).
+    The client certificate flags (`--client-cert-path`, `--client-key-path`, and `--ca-cert-paths`) exist in the Python launcher: `smg launch` from pip, and the container image. The released Rust `smg` binaries, through v1.13.0, have no client certificate flags. Unreleased: current main's Rust `smg` binary accepts the same three flags with the same meaning (smg-project/smg#3570). See [Client mTLS to Workers](#client-mtls-to-workers).
 
 ---
 
@@ -71,7 +71,7 @@ openssl x509 -req -days 365 -in server.csr \
 ### Step 3: Create client certificate (for mTLS to workers)
 
 !!! note "Only for workers that verify client certificates"
-    Skip this step unless your workers require a client certificate. The gateway presents it through the Python launcher's `--client-cert-path` and `--client-key-path` flags.
+    Skip this step unless your workers require a client certificate. The gateway presents it through the `--client-cert-path` and `--client-key-path` flags of the Python launcher and, unreleased, of current main's Rust `smg` binary.
 
 ```bash
 # Generate client private key
@@ -132,7 +132,7 @@ smg launch \
 | `--client-key-path` | Private key (PEM) for the client certificate. |
 | `--ca-cert-paths` | One or more CA certificates (PEM) that the gateway trusts, in addition to the system's trusted roots, when it verifies worker certificates. Takes several paths after one flag, and the flag can repeat. |
 
-- These flags belong to the Python launcher (`smg launch` from pip, and the container image). The Rust `smg` binary does not accept them.
+- These flags belong to the Python launcher (`smg launch` from pip, and the container image); the released Rust `smg` binaries, through v1.13.0, do not accept them. Unreleased: current main's Rust `smg` binary accepts all three under its `TLS/mTLS Security` help heading, `--ca-cert-paths` taking several paths after one flag and repeating, as in Python.
 - SMG reads the files at startup. Setting only one of `--client-cert-path` and `--client-key-path`, or passing a file it can't read, stops startup.
 - The certificate and CAs apply to the gateway's HTTPS connections only: the per-worker clients that send requests, health probes and admin calls to HTTP workers, and the shared client for external providers and model discovery. gRPC workers (`grpc://`, `grpcs://`) don't use them; see [Gateway to gRPC Workers](#gateway-to-grpc-workers).
 
