@@ -93,7 +93,7 @@ POST /v1/chat/completions
 | `model` | string | Yes | Model identifier. A name configured with `--model-alias` is accepted and resolved to its canonical model |
 | `messages` | array | Yes | Array of message objects; must not be empty |
 | `max_completion_tokens` | integer | No | Upper bound on generated completion tokens (at least 1) |
-| `max_tokens` | integer | No | Deprecated — use `max_completion_tokens`. Still accepted and migrated when `max_completion_tokens` is unset |
+| `max_tokens` | integer | No | Deprecated — use `max_completion_tokens`. Still accepted: it is the cap when `max_completion_tokens` is unset, and a proxied body reaches the worker with the field as the client wrote it (not rewritten) |
 | `temperature` | number | No | Sampling temperature (0-2) |
 | `top_p` | number | No | Nucleus sampling parameter, greater than 0 and at most 1 |
 | `n` | integer | No | Number of completions to generate (1-10) |
