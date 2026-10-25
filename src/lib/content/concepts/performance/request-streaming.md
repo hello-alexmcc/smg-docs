@@ -82,7 +82,7 @@ For an eligible request, the first matching rule wins:
 
 Rules 1–6 always buffer, at any size up to `--max-payload-size`. In the first five, something must read the body: the sticky-session key comes from the body's `rid`, the policy routes on the prompt, the model name is inside the body, the request must be edited for the worker, or a plugin inspects it.
 
-Rules 7–9 apply when the only reason to buffer is to keep the request retryable. Router retries count as enabled when `--retry-max-retries` is greater than `1` and `--disable-retries` is not set. (Per-worker retry fields in a worker spec have no effect in v1.11.0; see [Per-Worker Overrides](../reliability/retries.md#per-worker-overrides).)
+Rules 7–9 apply when the only reason to buffer is to keep the request retryable. Router retries count as enabled when `--retry-max-retries` is greater than `1` and `--disable-retries` is not set. (A worker spec's `resilience` fields apply to its model since v1.12.0, and a per-model override that still allows retries counts as enabled here, since the model sits inside the unread body; see [Per-Worker Overrides](../reliability/retries.md#per-worker-overrides).)
 
 Once a request is headed for the streamed path, the router selects a worker from the headers alone. If no worker can be selected that way, or the fleet changed in the meantime (a body-rewriting worker or a second model registered), the request falls back to the buffered path, counted as `no_available_worker`, `worker_mutates_body`, or `model_ambiguous`.
 
