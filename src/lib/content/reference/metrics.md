@@ -1201,14 +1201,16 @@ count(router_mesh_peer_connections{peer!=""} == 1)
 
 ## Declared but Not Emitted
 
-The v1.11.0 code registers descriptions for the following names, but nothing records values for them, so they never appear on `/metrics`. Remove them from dashboards and alerts:
+As of v1.13.0 the code registers descriptions for the following names, but nothing records values for them, so they never appear on `/metrics`. Remove them from dashboards and alerts:
 
 - `smg_router_stage_duration_seconds`
 - `smg_worker_connections_active`
 - `smg_db_operations_total`, `smg_db_operation_duration_seconds`, `smg_db_connections_active`, `smg_db_items_stored`
 - `router_mesh_store_cardinality`, `router_mesh_store_hash`, `router_rl_drift_ratio`, `router_lb_drift_ratio`
 
-`router_mesh_peer_ack_total` and `router_mesh_peer_nack_total` have recording code, but they count legacy ACK and NACK stream messages, which v1.11.0 nodes never send, so they stay absent in a v1.11.0 mesh.
+Unreleased: current main no longer registers the first six names (their descriptions left the code together with the recorders nothing called); the four mesh gauges stay described, with nothing recording them.
+
+`router_mesh_peer_ack_total` and `router_mesh_peer_nack_total` have recording code, but they count legacy ACK and NACK stream messages, which no node since v1.11.0 sends, so they stay absent from a mesh.
 
 ---
 
