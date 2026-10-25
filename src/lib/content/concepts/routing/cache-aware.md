@@ -246,7 +246,7 @@ For the KV-event index, SMG uses the first of these that is available for the mo
 | Block size reported in the model's KV events | Learned from each worker's first stored block after it subscribes; the most recent value wins |
 | `--block-size` | Router-wide fallback |
 
-The worker spec's `kv_block_size` field is accepted but not applied in v1.11.0. Set `--block-size` to the engines' KV page size (SGLang `--page-size`, vLLM `--block-size`, TokenSpeed `--prefix-granularity`) and keep one page size per model. The token tree always uses `--block-size`; only the KV-event index learns from events.
+The worker spec's `kv_block_size` field seeds the model's block size until the KV events name it (since v1.12.0; v1.11.0 accepted it without applying it). Set `--block-size` to the engines' KV page size (SGLang `--page-size`, vLLM `--block-size`, TokenSpeed `--prefix-granularity`) and keep one page size per model. The token tree always uses `--block-size`; only the KV-event index learns from events.
 
 ---
 

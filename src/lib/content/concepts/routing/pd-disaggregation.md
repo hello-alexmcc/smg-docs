@@ -398,7 +398,7 @@ Set a pairing protocol to declare compatibility yourself. Two legs that both car
 1. A `pairing_protocol` worker label, for example in the `labels` of `POST /workers`.
 2. The `SMG_PAIRING_PROTOCOL` environment variable of the engine process. The vLLM, SGLang, and TokenSpeed gRPC servicers report it in their server info.
 
-The worker spec also has a `pairing_protocol` field, but v1.11.0 does not apply it when it registers the worker; use the label instead.
+The worker spec's `pairing_protocol` field applies since v1.12.0 and wins over the label; v1.11.0 did not apply it when it registered the worker.
 
 On Kubernetes, set `SMG_PAIRING_PROTOCOL` in the engine container; there is no pod annotation for it.
 
