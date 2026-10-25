@@ -266,7 +266,7 @@ smg launch --enable-mesh \
 | `ALIVE` | Reachable. Every router starts in this state |
 | `SUSPECTED` | A probe failed: neither the direct ping nor any indirect ping reached the router. Still probed. Router discovery also sets it for a known pod that is not Ready, unless that router is already `DOWN` |
 | `DOWN` | A probe failed again while `SUSPECTED`, or the router's pod was deleted or is terminating. Peers stop probing it |
-| `LEAVING` | The node announced a graceful leave. Peers stop probing it. The v1.12 gateway does not announce it during shutdown |
+| `LEAVING` | The node announced a graceful leave. Peers stop probing it. The released gateways, through v1.13.0, do not announce it during shutdown. Unreleased: a gateway on current main told to stop broadcasts it to the live members first, during its settle window and before it drains, so they see the member leave within seconds instead of marking it `SUSPECTED` and then `DOWN` through failed probes; under mesh mTLS the broadcast does not reach them yet, and they still find out through the probes |
 | `INIT` | Defined in the protocol but not used |
 
 !!! warning "A `DOWN` router is not probed again"
