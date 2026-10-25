@@ -234,7 +234,7 @@ Both in-flight metrics compare the gateway's own per-worker request counts (see 
 
 `least_requests` gives up the policy's O(1) selection: it samples no pair and scans every available worker's count. Whatever the metric, a single available worker is selected directly.
 
-`--power-of-two-load-metric` is newer than v1.12.0. In v1.12.0 and earlier the comparison is always the expected wait.
+`--power-of-two-load-metric` exists since v1.13.0. In v1.12.0 and earlier the comparison is always the expected wait.
 
 **Use when:** Large or heterogeneous fleets where cache locality doesn't matter and each pick should read only two workers' load.
 

@@ -230,7 +230,7 @@ An existing `--log-dir` must be a directory SMG can write. A missing one is crea
 
 Any other path — an existing file, a directory SMG cannot write, a path under a file or under an unwritable directory — is refused at startup with a configuration error naming `log_dir`, the path, and the reason, before the gateway binds its port.
 
-Refusing to start is newer than v1.12.0. In v1.12.0 and earlier, a directory SMG cannot create is reported on stderr as `Failed to create log directory: <error>` and SMG runs with logging disabled entirely, stdout included; an existing directory SMG cannot write its log file to makes startup panic with `initializing rolling file appender failed`.
+Refusing to start applies since v1.13.0. In v1.12.0 and earlier, a directory SMG cannot create is reported on stderr as `Failed to create log directory: <error>` and SMG runs with logging disabled entirely, stdout included; an existing directory SMG cannot write its log file to makes startup panic with `initializing rolling file appender failed`.
 
 ### Example Directory Structure
 

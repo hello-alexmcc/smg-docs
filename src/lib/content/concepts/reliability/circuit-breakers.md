@@ -119,7 +119,7 @@ consecutive_failures >= failure_threshold
 
 `consecutive_failures` counts failed requests, not attempts: however many of a request's retries fail on the same worker, that worker's breaker is charged one failure, so the threshold's meaning does not shift with `--retry-max-retries`. Per-request counting applies to HTTP workers in regular mode and to gRPC and ZMQ workers (regular, PD, and EPD dispatch). For HTTP workers in PD mode and for external provider workers, every failed attempt still counts individually.
 
-Per-request counting is newer than v1.12.0. In v1.12.0 and earlier, every failed attempt increments the counter on every path: with the default five attempts per request, two failed requests on one worker can produce the ten failures the default threshold needs.
+Per-request counting applies since v1.13.0. In v1.12.0 and earlier, every failed attempt increments the counter on every path: with the default five attempts per request, two failed requests on one worker can produce the ten failures the default threshold needs.
 
 A single successful request resets `consecutive_failures` to zero. `--cb-window-duration-secs` is accepted and validated but is not consumed by the state machine — failures are tracked with a running consecutive-failure counter rather than a sliding window.
 
@@ -131,7 +131,7 @@ A promotion back to `Ready` is a second trigger: when a demoted worker's [health
 
 A promotion also resets the consecutive-failure count of a circuit the outage left closed, so the first failure after the worker's return does not open the circuit on the outage's account. Each promotion starts at most one trial: passing probes on a worker that is already `Ready` are not a promotion, so a circuit that reopens during the trial waits for its open timeout or for the worker's next demotion and promotion.
 
-Promotion readmission is newer than v1.12.0. In v1.12.0 and earlier, a worker promoted by its health probes stayed unroutable until the open timeout passed.
+Promotion readmission exists since v1.13.0. In v1.12.0 and earlier, a worker promoted by its health probes stayed unroutable until the open timeout passed.
 
 ### Half-Open → Closed
 
@@ -208,7 +208,7 @@ smg launch \
 
 The thresholds must be at least `1`, and the durations must be greater than `0`.
 
-`--cb-failure-threshold` counts failed requests (newer than v1.12.0; earlier releases count failed attempts); see [State Transitions](#state-transitions).
+`--cb-failure-threshold` counts failed requests (since v1.13.0; earlier releases count failed attempts); see [State Transitions](#state-transitions).
 
 ### Configuration Examples
 
@@ -306,7 +306,7 @@ Once every worker for the model has an open circuit, requests get 503 `no_availa
 
 The `worker` label is the worker URL.
 
-`smg_worker_cb_health_readmissions_total` is newer than v1.12.0; see [State Transitions](#state-transitions).
+`smg_worker_cb_health_readmissions_total` exists since v1.13.0; see [State Transitions](#state-transitions).
 
 ### Useful PromQL Queries
 

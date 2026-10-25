@@ -241,7 +241,7 @@ See [Multimodal](../architecture/multimodal.md) for media processing modes and t
 
 Token counting generates nothing. Over HTTP, SMG sends it to a single prefill worker and adds no bootstrap fields. Over gRPC, SMG answers it from the model's tokenizer and contacts no leg at all. See the [Messages API](../../reference/api/messages.md#count-tokens).
 
-Gateway-side token counting on gRPC PD is newer than v1.12.0: v1.12.0 and earlier answer `/v1/messages/count_tokens` on gRPC PD with `501 Not Implemented`.
+Gateway-side token counting on gRPC PD applies since v1.13.0: v1.12.0 and earlier answer `/v1/messages/count_tokens` on gRPC PD with `501 Not Implemented`.
 
 ---
 
