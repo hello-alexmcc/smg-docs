@@ -863,7 +863,7 @@ The rule code in the last column names the rule in SMG's source and tests; only
 | DeepSeek V4 | `reasoning_effort` or `thinking.effort` outside `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`; V4.1 also takes an integer budget from 1 to 100 | `reasoning_effort_not_allowed` |
 | DeepSeek V4 | `chat_template_kwargs.thinking` or `enable_thinking` that is neither a boolean nor `null` | `invalid_thinking_override` |
 | DeepSeek V4 | `chat_template_kwargs.thinking` and `enable_thinking` that disagree | `conflicting_thinking_overrides` |
-| DeepSeek V4 | A forced `tool_choice` (`required`, a named function, or `allowed_tools` with mode `required`) while thinking is on | `tool_choice_not_supported` |
+| DeepSeek V4 | A forced `tool_choice` (`required`, a named function, or `allowed_tools` with mode `required`) while thinking is on. Unreleased: current main serves the call instead of refusing it (the gateway shapes the call's grammar for where the engine starts it, after the thought or around it; the vendor's own API refuses it where it still does) | `tool_choice_not_supported` |
 
 z.ai and DeepSeek V4 check both effort spellings, even the one that `thinking.effort`
 shadows.
