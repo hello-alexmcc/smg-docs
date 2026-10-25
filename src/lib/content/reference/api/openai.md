@@ -607,8 +607,11 @@ curl http://localhost:30000/v1/models
 ```
 
 The list covers the models served by self-hosted workers, each once under its canonical
-ID. Aliases (`--model-alias` names and model-card `aliases` entries) are accepted in
-requests but are not listed. `created` is always `0` and `owned_by` is `self_hosted`.
+ID, followed by one entry per alias (`--model-alias` names and model-card `aliases`
+entries), so every name a client may send is one it can discover. An alias is listed under
+the model the registry resolves it to and nowhere else: an alias two workers' cards declare
+appears once, and a name that is also a registered model's ID is never listed as an alias.
+`created` is always `0` and `owned_by` is `self_hosted`.
 
 When no self-hosted worker serves any model, the endpoint returns `503` in the gateway's
 JSON [error envelope](#error-format) with the code `no_models_available`.
