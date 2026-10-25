@@ -149,7 +149,7 @@ SMG_VLLM_MM_PROCESSOR=redis SMG_VLLM_MM_REDIS_URL=redis://127.0.0.1:6379/0 \
 
 ### SMG's Pipeline on the Rust Servicer
 
-`--mm-processor smg` runs SMG's own media pipeline — the same fetch, decode, preprocess, and placeholder expansion the router runs for `--mm-processing router` — inside the worker, with no Python on the request path (smg-project/smg#2741). The resulting batches reach the engine as a router-preprocessed request's would. The mode exists only in the [Rust vLLM servicer](../../getting-started/grpc-workers.md#rust-vllm-servicer) and, like that servicer, is newer than v1.11.0; the Python servicer refuses the value at startup with an error pointing to `--servicer-impl rust` / `SMG_VLLM_SERVICER_IMPL=rust`.
+`--mm-processor smg` runs SMG's own media pipeline — the same fetch, decode, preprocess, and placeholder expansion the router runs for `--mm-processing router` — inside the worker, with no Python on the request path (smg-project/smg#2741). The resulting batches reach the engine as a router-preprocessed request's would. The mode exists only in the [Rust vLLM servicer](../../getting-started/grpc-workers.md#rust-vllm-servicer) and, like that servicer, exists since v1.12.0; the Python servicer refuses the value at startup with an error pointing to `--servicer-impl rust` / `SMG_VLLM_SERVICER_IMPL=rust`.
 
 ```bash
 SMG_VLLM_SERVICER_IMPL=rust SMG_VLLM_MM_PROCESSOR=smg \
