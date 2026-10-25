@@ -50,7 +50,7 @@ Where the gateway listens and which workers it registers at startup.
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--host` | `0.0.0.0` | Address the main HTTP server binds. The server parses `host:port` as a socket address, so IPv6 literals need brackets: `[::]` for all IPv6 interfaces, `[::1]` for IPv6 localhost. |
+| `--host` | `0.0.0.0` | IP address the main HTTP server binds. Every listener flag (`--host`, `--prometheus-host`, the probe listener, `--mesh-host`) takes an IP literal, an IPv6 one with or without brackets: `::` or `[::]` for all IPv6 interfaces, `::1` or `[::1]` for IPv6 localhost. A hostname is a configuration error. |
 | `--port` | `30000` | Port for the main API server. Must be greater than 0. |
 | `--health-check-port` | unset | Dedicated port that also serves `/liveness`, `/readiness`, and `/health` from a middleware-free router on its own single-worker runtime and OS thread, so a saturated gateway cannot starve probes. The same routes stay available on `--port`. Unset turns the dedicated listener off; `0` is rejected. |
 | `--worker-urls` | none | Space-separated worker URLs registered at startup. Schemes: `http://`, `https://`, `grpc://`, `grpcs://`, and `ipc://` (same-host ZMQ, see [ZMQ Workers](../getting-started/zmq-workers.md)). IPv6 hosts use brackets. |
@@ -422,7 +422,7 @@ See [Configure Logging](../getting-started/logging.md).
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--prometheus-port` | `29000` | Port of the metrics server, which serves `/metrics`. Must be greater than 0: v1.11.0 rejects `0` at startup (`metrics.port` ... `Port must be > 0`), even though `--help` describes `0` as an OS-assigned ephemeral port. |
-| `--prometheus-host` | `0.0.0.0` | Bind address of the metrics server, as a bare IP address (IPv6 without brackets, for example `::`). An unparsable value logs an error and falls back to `0.0.0.0`. |
+| `--prometheus-host` | the unspecified address of `--host`'s family: `0.0.0.0`, or `::` for an IPv6 `--host` | IP address the metrics server binds, IPv6 with or without brackets. A value that is not an IP address is a configuration error. |
 | `--prometheus-duration-buckets` | see below | Space-separated histogram bucket boundaries, in seconds, for metrics whose names end in `duration_seconds`, `ttft_seconds`, or `tpot_seconds`. |
 
 Default buckets: `0.001 0.005 0.01 0.025 0.05 0.1 0.25 0.5 1 2.5 5 10 15 30 45 60 90 120 180 240 300 480 900 1200 1800 2700 3600 5400 7200`.
@@ -789,7 +789,7 @@ High-availability mesh networking for multi-router coordination. See [High Avail
 |--------|---------|-------------|
 | `--enable-mesh` | `false` | Enable the mesh server for HA multi-router coordination. |
 | `--mesh-server-name` | `Mesh_` plus 4 random characters | Name of this mesh node. Must be non-empty and must not contain `:`. |
-| `--mesh-host` | `0.0.0.0` | Bind address for the mesh listener, as an IP address (brackets for IPv6). |
+| `--mesh-host` | `0.0.0.0` | IP address the mesh listener binds, IPv6 with or without brackets. |
 | `--mesh-advertise-host` | the `--mesh-host` value | Routable address advertised to other mesh peers. Required when `--mesh-host` is an unspecified bind address such as `0.0.0.0`. |
 | `--mesh-port` | `39527` | Port for the mesh server. `0` is rejected because peers dial the advertised port. |
 | `--mesh-peer-urls` | none | Peer address to join at startup, as `IP:port`. Only the first entry is used as the initial peer, and it must be an IP address and port: a hostname fails startup. Later entries are ignored without being checked. |
