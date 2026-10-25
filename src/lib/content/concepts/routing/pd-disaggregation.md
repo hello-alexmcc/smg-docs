@@ -198,7 +198,7 @@ The gRPC pipeline does not speak MoRI-IO and refuses such pairs with 501 `moriio
 
 Under concurrent dispatch, SMG mints the decode leg's `kv_transfer_params` up front instead of relaying the prefill's handoff (see [Connector Modes](#connector-modes)): the decode engine dials the side channel named by the prefill worker's `moriio_host`, `moriio_handshake_port`, and `moriio_notify_port` labels, which must therefore match the prefill engine's configuration. SMG still validates the handoff the prefill returns, with one extra check: it must report the same handshake and notify ports the decode leg was told. The decode response — even one that has already arrived — is forwarded only after the handoff passes; otherwise the request fails with 502 `moriio_handoff_invalid` and SMG drops the decode leg, whose engine would wait for a push that never comes.
 
-With both legs in flight, the first leg to fail ends the request, and SMG drops the other leg, which makes its engine abort it. A prefill error status passes through as `prefill_upstream_error`, a decode transport error answers 502 `decode_request_failed`, and a decode engine that refuses the request takes no push, so its error status is returned without waiting for the prefill.
+With both legs in flight, the first leg to fail ends the request, and SMG drops the other leg, which makes its engine abort it. A prefill error status passes through as `prefill_upstream_error`, a decode transport error answers 502 `decode_request_failed`, and a decode engine that refuses the request takes no push, so its error status is returned without waiting for the prefill. Unreleased: current main names a failed side the same way on the HTTP and the gRPC paths: a side that never started is `prefill_worker_failed_to_start` or `decode_worker_failed_to_start` (a status the worker answered is kept; a call that failed below HTTP is a 502), a side that produces nothing within its liveness bound is `prefill_worker_silent` or `decode_worker_silent`, and a stream that fails after it began is `prefill_stream_error` or `decode_stream_error`; `prefill_upstream_error` and `decode_request_failed` are gone.
 
 ### Failures, Cancellation, and Streaming
 
@@ -425,8 +425,8 @@ On the gRPC path, SMG counts the prompt tokens itself and rejects a prompt longe
 | 503 | `worker_overload_protection_shed` | The decode admission window stayed full, or [overload protection](../reliability/overload-protection.md) vetoed a leg. Sent with `Retry-After` |
 | 400 | `context_length_exceeded` | gRPC: the prompt exceeds the smaller context window of the two legs |
 | 400 | `runtime_pd_not_supported` | gRPC: the selected runtime has no PD protocol |
-| Engine status | `prefill_worker_failed_to_start`, `decode_worker_failed_to_start` | gRPC: the engine refused that leg |
-| Upstream status | `prefill_upstream_error` | vLLM over HTTP: the prefill worker returned an error status, which SMG passes through |
+| Engine status | `prefill_worker_failed_to_start`, `decode_worker_failed_to_start` | gRPC: the engine refused that leg. Unreleased: on current main the HTTP path answers a refused or unreachable side under the same codes (the worker's status kept, 502 below HTTP), and both paths name a silent side `prefill_worker_silent` / `decode_worker_silent` and a failed stream `prefill_stream_error` / `decode_stream_error` |
+| Upstream status | `prefill_upstream_error` | vLLM over HTTP: the prefill worker returned an error status, which SMG passes through. Unreleased: current main answers it as `prefill_worker_failed_to_start` under the same status |
 | 503 | `moriio_pair_misconfigured` | vLLM MoRI-IO over HTTP: the selected pair is not configured for MoRI-IO. The reason is in the gateway log |
 | 400 | `moriio_fanout_unsupported` | MoRI-IO: `n>1`, a batched prompt or prompt embeddings, or beam search |
 | 400 | `moriio_request_id_reserved` | MoRI-IO: a request id carries the connector's peer-address markers |

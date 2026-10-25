@@ -924,7 +924,7 @@ itself produced the error.
 | 400 | `unsupported_content_part` | gRPC: a content part SMG cannot render |
 | 400 | `audio_output_not_supported`, `unsupported_output_modality` | gRPC: `return_audio: true` or a non-`text` entry in `modalities`; gRPC workers produce text only |
 | 400 | `multimodal_not_supported` | gRPC: the selected engine does not accept one of the request's input modalities |
-| Engine-mapped | `start_generation_failed`, `prefill_worker_failed_to_start`, `decode_worker_failed_to_start` | gRPC: the engine did not start generation. The status follows the engine's gRPC status, for example invalid argument → `400` (not retried and not counted against the circuit breaker), resource exhausted → `429`, unavailable → `503`, deadline exceeded → `504`, internal → `500` |
+| Engine-mapped | `start_generation_failed`, `prefill_worker_failed_to_start`, `decode_worker_failed_to_start` | gRPC (unreleased: the HTTP prefill-decode router too, for the two side codes): the engine did not start generation. The status follows the engine's gRPC status, for example invalid argument → `400` (not retried and not counted against the circuit breaker), resource exhausted → `429`, unavailable → `503`, deadline exceeded → `504`, internal → `500` |
 | 401 | — | Missing or unknown API key (empty body) |
 | 404 | `model_not_found` | No worker serves the model |
 | 408 | `request_body_stalled` | HTTP router: a streamed request body stalled for `--stream-body-stall-timeout-secs` |
