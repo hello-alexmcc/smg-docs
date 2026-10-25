@@ -96,7 +96,7 @@ Decisions is the one endpoint where the worker transport matters: the gRPC route
 
 Settlement follows what each endpoint's backend actually reports: an embeddings or classify response carries only a prompt token count — there is no completion to charge — so those requests settle against the backend's reported prompt tokens alone. A transcription settles against the backend's reported prompt and completion counts, like a chat response, even though the transcript returned to the client carries no usage object.
 
-The `--tenant-rate-limit-*` flags belong to the Rust `smg` binary. The Python launcher (`smg launch` from pip, and the container image) does not accept them in v1.12.0.
+The `--tenant-rate-limit-*` flags belong to the Rust `smg` binary. The Python launcher (`smg launch` from pip, and the container image) accepts them since v1.13.0; v1.12.0 and earlier do not.
 
 Enforcement is also **per gateway instance**: a tenant's true limit across several independent SMG instances is roughly the configured value multiplied by the instance count. A distributed backend for exact cluster-wide enforcement is a possible future extension behind the same interface, not something this version provides.
 

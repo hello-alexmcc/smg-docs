@@ -28,7 +28,7 @@ Shepherd Model Gateway (SMG) routes and manages LLM traffic across workers. This
     - `smg launch` starts the gateway alone, for workers you run yourself
     - `smg serve` starts engine workers and then the gateway; the engine (vLLM, SGLang, TensorRT-LLM, or TokenSpeed) must be installed in the same environment
 
-    `smg launch` parses its flags in Python (`smg.launch_router`, which is also the gateway Docker image's entrypoint) and runs the Rust gateway in-process. This launcher accepts most of the Rust binary's flags but not all of them: `--priority-scheduler-*`, `--tenant-*`, `--drain-settle-secs`, and `--runtime-worker-threads`, among others, exist only in the binary from `cargo install` or a source build.
+    `smg launch` parses its flags in Python (`smg.launch_router`, which is also the gateway Docker image's entrypoint) and runs the Rust gateway in-process. This launcher accepts most of the Rust binary's flags but not all of them: as of v1.13.0, `--drain-settle-secs` and `--runtime-worker-threads`, among others, exist only in the binary from `cargo install` or a source build (`--priority-scheduler-*` and `--tenant-*` reach the launcher since v1.13.0; the two named here reach it on current main, newer than v1.13.0: smg-project/smg#3548, smg-project/smg#3565).
 
     Nightly Linux x86_64 wheels are attached to dated prereleases in [smg-project/artifacts](https://github.com/smg-project/artifacts/releases). Install one with `pip install <wheel URL>`.
 

@@ -28,7 +28,7 @@ smg \
 | `--tenant-rate-limit-enabled` | `false` | Master switch. When unset, no rate limiter is constructed and every request skips reservation entirely. |
 | `--tenant-rate-limit-config` | unset | Path to the tenant-rate-limit YAML. Required when `--tenant-rate-limit-enabled` is set. |
 
-Both flags belong to the Rust `smg` binary. The Python launcher (`smg launch` from pip, and the container image) does not accept them in v1.12.0.
+Both flags belong to the Rust `smg` binary. The Python launcher (`smg launch` from pip, and the container image) accepts them since v1.13.0; v1.12.0 and earlier do not.
 
 !!! warning "Fail-closed startup"
     With `--tenant-rate-limit-enabled`, a missing config path, or a file that is unreadable, unparsable, or fails validation, stops the gateway at startup with an error. An operator who turned the limiter on never gets a gateway that silently runs unlimited.
