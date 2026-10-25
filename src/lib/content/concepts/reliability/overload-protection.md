@@ -246,7 +246,7 @@ X-SMG-Error-Code: worker_overload_protection_shed
 ```json
 {
   "error": {
-    "type": "Service Unavailable",
+    "type": "server_error",
     "code": "worker_overload_protection_shed",
     "message": "All workers for model 'meta-llama/Llama-3.1-8B-Instruct' are overloaded",
     "param": null

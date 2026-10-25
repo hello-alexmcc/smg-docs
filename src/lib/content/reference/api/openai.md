@@ -890,7 +890,7 @@ response header:
 ```json
 {
   "error": {
-    "type": "Bad Request",
+    "type": "invalid_request_error",
     "code": "context_length_exceeded",
     "message": "This model's maximum context length is 2048 tokens. However, your request has 2310 input tokens. Please reduce the length of the input.",
     "param": null
@@ -898,8 +898,9 @@ response header:
 }
 ```
 
-`type` is the HTTP status's reason phrase (`Bad Request`, `Not Found`,
-`Too Many Requests`, `Service Unavailable`, ...). Request parsing and validation failures
+`type` is the public API's vocabulary, which clients switch on: `invalid_request_error` for a 4xx
+(the detail is in `code`; a 403 is `permission_error` and a 429 `rate_limit_error`) and `server_error`
+for a 5xx. Request parsing and validation failures
 use a different shape and carry no `X-SMG-Error-Code` header:
 
 | Failure | Body |

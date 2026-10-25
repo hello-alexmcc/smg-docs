@@ -116,7 +116,7 @@ The response body is the gateway's standard JSON error envelope:
 ```json
 {
   "error": {
-    "type": "Too Many Requests",
+    "type": "rate_limit_error",
     "code": "tenant_rate_limit_exceeded",
     "message": "Tenant rate limit exceeded for this request",
     "param": null

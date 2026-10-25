@@ -1356,13 +1356,14 @@ items, the next request's `input` can be only their `function_call_output` items
 
 ### Error Format
 
-Errors that SMG generates use the gateway envelope, with the HTTP reason phrase as `type`
-and the code repeated in the `X-SMG-Error-Code` header:
+Errors that SMG generates use the gateway envelope, with the public API's error type as `type`
+(`invalid_request_error` for a 4xx, the detail in `code`; `rate_limit_error` for a 429; `server_error`
+for a 5xx) and the code repeated in the `X-SMG-Error-Code` header:
 
 ```json
 {
   "error": {
-    "type": "Not Found",
+    "type": "invalid_request_error",
     "code": "conversation_not_found",
     "message": "Conversation 'conv_abc123' not found. Please create the conversation first using the conversations API.",
     "param": null
