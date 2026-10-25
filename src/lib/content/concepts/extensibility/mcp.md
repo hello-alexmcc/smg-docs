@@ -150,7 +150,7 @@ Every MCP tool call has a 120-second deadline. A call that runs longer fails wit
 Tool call timed out after 120s on server 'docs' while executing 'search_docs'; the outcome is unknown and the call was not retried
 ```
 
-The deadline covers the whole call, including any re-issue after a reconnect. The value comes from `pool.call_timeout`, but the gateway does not apply the `pool` section of the configuration file, so the timeout is always 120 seconds (see [Accepted but Not Applied](#accepted-but-not-applied)).
+The deadline covers the whole call, including any re-issue after a reconnect. The value comes from the configuration file's `pool.call_timeout` (default 120 seconds, `0` disables the bound; applied since v1.12.0, see [Pool, Proxy, Inventory, Warmup and Policy Keys](#pool-proxy-inventory-warmup-and-policy-keys)).
 
 ### Interrupted Calls
 
@@ -208,7 +208,7 @@ Every MCP call passes through SMG's approval check before it runs, in one of two
 
 | Mode | Used for | Behavior |
 |------|----------|----------|
-| Policy-only | Every path, by default | SMG decides without asking the client. The gateway currently runs the built-in default policy, which allows every tool. The `policy` section of the configuration file is not applied. |
+| Policy-only | Every path, by default | SMG decides without asking the client, by the `policy` section of the configuration file (applied since v1.12.0); the built-in default allows every tool. |
 | Interactive | `require_approval: "always"` on an `mcp` tool, in a non-streaming Responses request to an OpenAI-compatible provider | When the model calls one of that server's tools (or, if `allowed_tools` lists names, one of those tools), SMG stops the loop and returns the response with an `mcp_approval_request` output item instead of running the call. |
 
 - `require_approval: "never"`, the object form (`{"always": ..., "never": ...}`), streaming requests, gRPC workers, and the Messages API all use policy-only mode.
@@ -274,8 +274,8 @@ smg launch --worker-urls grpc://localhost:50051 --mcp-config-path /etc/smg/mcp.y
 
 ### Configuration File
 
-!!! warning "Only `servers` is applied"
-    In v1.11.0 the gateway reads only the `servers` list from this file. The `pool`, `proxy`, `inventory`, `warmup`, and `policy` sections are accepted, so a file that sets them still loads, but they are not applied: the gateway's MCP client always runs with its built-in defaults, which are a 120-second call timeout, a 100-connection pool for dynamic servers, no global proxy, and an allow-all approval policy. Set proxies on each server instead.
+!!! note "Applied since v1.12.0"
+    Since v1.12.0 the gateway builds its MCP client from this file: the `pool` limits, the global `proxy` (and the `MCP_HTTP_PROXY`, `MCP_HTTPS_PROXY`, and `MCP_NO_PROXY` variables, each falling back to its standard counterpart), and the approval `policy` apply; the `warmup` list and the `inventory` refresh settings are accepted and not applied. In v1.11.0 only the `servers` list was read and the client ran with its built-in defaults: a 120-second call timeout, a 100-connection pool for dynamic servers, no global proxy, and an allow-all approval policy.
 
 ```yaml
 servers:                             # required; use [] for no static servers
@@ -350,24 +350,24 @@ servers:                             # required; use [] for no static servers
 
 SMG applies renames first, then defaults, then overrides. It then converts string values to numbers where the tool's input schema declares the property as `number` or `integer`. A `tools` entry for a tool the server doesn't list at connect time is skipped with a warning.
 
-### Accepted but Not Applied
+### Pool, Proxy, Inventory, Warmup and Policy Keys
 
-The gateway accepts these keys but does not apply them. The defaults shown are the values in effect.
+Since v1.12.0 the gateway applies these keys, except where a row says otherwise (v1.11.0 accepted them without applying any). The defaults shown are the values in effect.
 
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `pool.call_timeout` | `120` | Seconds allowed for one tool call. `0` disables the bound. |
 | `pool.max_connections` | `100` | Capacity of the dynamic-server connection pool. |
 | `pool.idle_timeout` | `300` | Seconds. Not implemented; idle connections stay open. |
-| `proxy` | None | Global proxy (`http`, `https`, `no_proxy`, `username`, `password`). Use per-server `proxy` instead. |
+| `proxy` | None | Global proxy (`http`, `https`, `no_proxy`, `username`, `password`); a server's own `proxy` block overrides it. |
 | `inventory.enable_refresh`, `inventory.tool_ttl`, `inventory.refresh_interval`, `inventory.refresh_on_error` | `true`, `300`, `60`, `true` | Tool-cache settings. Not implemented; tools are refreshed only by server notifications. |
-| `warmup` | `[]` | List of `url`, `label`, and `token` entries to pre-connect. |
+| `warmup` | `[]` | List of `url`, `label`, and `token` entries to pre-connect. Accepted and not applied. |
 | `policy.default` | `allow` | `allow`, `deny`, or `{deny_with_reason: "..."}`. |
 | `policy.servers.<name>.trust_level` | `standard` | `trusted`, `standard`, `untrusted`, or `sandboxed`. |
 | `policy.servers.<name>.default` | `allow` | Same values as `policy.default`. |
 | `policy.tools."<server>:<tool>"` | None | Same values as `policy.default`. |
 
-A `pool` section that asks for a 60-second call timeout looks like this. The gateway accepts it but still uses 120 seconds:
+A `pool` section that asks for a 60-second call timeout looks like this:
 
 ```yaml
 servers: []
@@ -381,7 +381,7 @@ SMG parses `mcp.yaml` as plain YAML and does not expand environment variables in
 
 ### HTTP Proxies
 
-Set `proxy` on each server that needs one. `http` and `https` are proxy URLs, `no_proxy` is a comma-separated list of hosts to reach directly, and `username` with `password` adds basic authentication. A server without its own `proxy` block uses the standard `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, and `NO_PROXY` environment variables (upper- or lowercase). SMG currently ignores the top-level `proxy` section and the `MCP_HTTP_PROXY`, `MCP_HTTPS_PROXY`, and `MCP_NO_PROXY` variables. Proxy settings in `mcp.yaml` apply to MCP traffic only.
+Set `proxy` on each server that needs one. `http` and `https` are proxy URLs, `no_proxy` is a comma-separated list of hosts to reach directly, and `username` with `password` adds basic authentication. A server without its own `proxy` block uses the top-level `proxy` section, and without one the `MCP_HTTP_PROXY`, `MCP_HTTPS_PROXY`, and `MCP_NO_PROXY` environment variables, each falling back to its standard counterpart (`HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`, upper- or lowercase), and with no HTTP or HTTPS proxy value set anywhere the HTTP client's own detection applies, which reads `ALL_PROXY` or `all_proxy` as the final fallback; since v1.12.0, v1.11.0 read only the standard variables. Proxy settings in `mcp.yaml` apply to MCP traffic only.
 
 ---
 
@@ -422,12 +422,11 @@ Set `internal: true` on a static server when its tools support the model behind 
 | Startup fails with `Failed to parse MCP config from <path>` | YAML syntax error, an invalid value, or a missing `servers` key | Fix the file. Use `servers: []` if you have no static servers. |
 | `424` with code `connect_mcp_server_failed` | No MCP server in a Responses request could be connected (gRPC workers) | Check `server_url` (`http://` or `https://`, without `/sse`) and `authorization`. |
 | `502` with code `mcp_connection_failed` | No server in a Messages request's `mcp_servers` could be connected | Check each `url` and `authorization_token`. |
-| `mcp_call` fails with `Tool call timed out after 120s` | The server took longer than the per-call timeout | Make the tool faster or split the work. The timeout can't currently be changed. |
+| `mcp_call` fails with `Tool call timed out after 120s` | The server took longer than the per-call timeout | Make the tool faster or split the work, or raise `pool.call_timeout` in the configuration file (`0` disables the bound). |
 | `mcp_call` fails with `Tool call outcome unknown` | The connection dropped during the call; SMG reconnects a static server for later calls but never re-issues the interrupted one | Check the server. Retry only if the tool is safe to run twice. |
 | `mcp_call` fails with `Server access denied: ambiguous MCP connection` | The same `server_url` was used with different credentials | Send a single credential to each URL. |
 | Calls to a static server fail with `Server not found` after a disconnect | All 5 reconnection attempts failed (for stdio, the relaunched `command` kept failing), so SMG removed the server | Fix what keeps the server from coming up, then restart SMG to register it again. |
 | Request fails with `Unsupported input item type` | On gRPC workers, the request `input` contains `mcp_call`, `mcp_list_tools`, `mcp_approval_request`, or `mcp_approval_response` items | Remove those items from `input`. |
-| A `pool`, `policy`, or top-level `proxy` setting has no effect | Only `servers` is applied | See [Accepted but Not Applied](#accepted-but-not-applied). |
 
 ---
 

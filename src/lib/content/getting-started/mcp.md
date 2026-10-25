@@ -51,7 +51,7 @@ servers:
 
 - Use `protocol: streamable` for remote servers. The legacy `sse` transport has been removed, and a server configured with it fails to connect.
 - SMG parses `mcp.yaml` as plain YAML and does not expand `${VAR}` placeholders inside server `token` values. Substitute credentials externally before the gateway loads the file: render the YAML through `envsubst` from a shell wrapper, use a templating tool (Helm, Kustomize, Jinja), or inject the final config via a secret mount. See [Keeping Credentials Out of Config Files](../concepts/extensibility/mcp.md#keeping-credentials-out-of-config-files).
-- The gateway applies only the `servers` list. It accepts the `pool`, `policy`, `inventory`, and `warmup` sections and a top-level `proxy` section, but does not apply them, so settings such as `pool.call_timeout` and approval policies in this file have no effect; see [Accepted but Not Applied](../concepts/extensibility/mcp.md#accepted-but-not-applied).
+- Since v1.12.0 the gateway applies the `pool` and `policy` sections and a top-level `proxy` section beside the `servers` list (v1.11.0 applied only `servers`); the `warmup` list, `pool.idle_timeout` and the `inventory` refresh settings are accepted and not applied. See [Pool, Proxy, Inventory, Warmup and Policy Keys](../concepts/extensibility/mcp.md#pool-proxy-inventory-warmup-and-policy-keys).
 
 ---
 
@@ -168,7 +168,7 @@ A tool call that fails does not fail the request: the model gets the error as th
 
 SMG checks every MCP call before running it:
 
-- By default it decides by policy, without asking the client. The gateway currently runs the built-in default policy, which allows every tool. The `policy` section of `mcp.yaml` is not applied.
+- By default it decides by policy, without asking the client: the `policy` section of `mcp.yaml` (applied since v1.12.0; the built-in default allows every tool).
 - `require_approval: "always"` on an `mcp` tool pauses before a matching call only in non-streaming requests to an OpenAI-compatible provider. The response ends with an `mcp_approval_request` item instead of running the call, and SMG does not currently resume from an `mcp_approval_response`.
 - On gRPC workers, in streaming requests, and in the Messages API, every call is decided by policy.
 

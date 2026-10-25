@@ -644,7 +644,7 @@ Names use underscores: `--reasoning-parser deepseek-r1` fails; use `deepseek_r1`
 | Default | unset |
 | Description | Path to the MCP (Model Context Protocol) server configuration file (YAML), loaded at startup. `--help` lists it under Parsers. |
 
-Only the file's `servers` list is applied. A server entry's own `proxy:` block sets that server's outbound proxy; otherwise MCP connections use the standard `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, and `NO_PROXY` variables (upper- or lowercase). v1.11.0 ignores the top-level `proxy:` block and never reads `MCP_HTTP_PROXY`, `MCP_HTTPS_PROXY`, or `MCP_NO_PROXY`. See [Model Context Protocol (MCP)](../concepts/extensibility/mcp.md).
+Since v1.12.0 the file's `pool`, `proxy`, and `policy` sections apply beside its `servers` list; the `warmup` list, `pool.idle_timeout`, and the `inventory` refresh settings are accepted and not applied. A server entry's own `proxy:` block sets that server's outbound proxy; otherwise the top-level `proxy:` block applies, and without one MCP connections use `MCP_HTTP_PROXY`, `MCP_HTTPS_PROXY`, and `MCP_NO_PROXY`, each falling back to the standard `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` variables (upper- or lowercase); with no HTTP or HTTPS proxy value set anywhere, the HTTP client's own detection applies, which reads `ALL_PROXY` or `all_proxy` as the final fallback. v1.11.0 applied only the `servers` list, ignored the top-level `proxy:` block, and never read the `MCP_*` variables. See [Model Context Protocol (MCP)](../concepts/extensibility/mcp.md).
 
 ---
 
@@ -1051,7 +1051,7 @@ These variables back a flag; the flag wins when both are set.
 | `HF_TOKEN` | Hugging Face token for tokenizer and model config downloads. |
 | `HF_HOME`, `HF_ENDPOINT` | Hugging Face cache directory and Hub endpoint, read by the `hf-hub` client that downloads tokenizers and model configs. |
 | `DB_AUTO_MIGRATE` | `true` or `1` turns on automatic schema migrations for the Oracle and PostgreSQL backends when the schema config does not set `auto_migrate`. See [Schema Migrations](#schema-migrations). |
-| `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY` | Standard proxy variables (upper- or lowercase), used by outbound MCP connections whose server entry sets no `proxy:`. `MCP_HTTP_PROXY`, `MCP_HTTPS_PROXY`, and `MCP_NO_PROXY` are not read in v1.11.0. See [MCP Configuration](#mcp-configuration). |
+| `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY` | Standard proxy variables (upper- or lowercase), used by outbound MCP connections whose server entry sets no `proxy:` and whose file sets no top-level one. Since v1.12.0 `MCP_HTTP_PROXY`, `MCP_HTTPS_PROXY`, and `MCP_NO_PROXY` are read first, each falling back to its standard counterpart; with no HTTP or HTTPS proxy value set anywhere, the HTTP client's own detection applies and reads `ALL_PROXY` or `all_proxy` as the final fallback. v1.11.0 did not read the `MCP_*` variables. See [MCP Configuration](#mcp-configuration). |
 | `OPENAI_ADMIN_KEY`, `XAI_ADMIN_KEY`, `ANTHROPIC_ADMIN_KEY`, `GEMINI_ADMIN_KEY` | Key used to list an external provider's models when a provider worker is registered. Takes precedence over `--api-key`. |
 
 ### Multimodal Variables

@@ -472,7 +472,7 @@ What SMG does:
 
 In a stream, SMG forwards the upstream events, emits the model's tool calls as `mcp_tool_use` blocks and each result as an `mcp_tool_result` block, and ends with a single `message_delta` and `message_stop`. SMG does not accept `mcp_tool_use` or `mcp_tool_result` blocks in `messages` (see the accepted block types under [Request Body](#request-body)).
 
-Tool calls use policy-only approval: SMG never pauses the request to ask the client. The gateway runs its built-in default policy, which allows every tool, because the `policy` section of the MCP configuration file is not applied in v1.11.0. See [MCP](../../concepts/extensibility/mcp.md) for server configuration.
+Tool calls use policy-only approval: SMG never pauses the request to ask the client. The gateway runs the approval policy of the MCP configuration file's `policy` section (applied since v1.12.0; v1.11.0 ran the built-in default, which allows every tool). See [MCP](../../concepts/extensibility/mcp.md) for server configuration.
 
 ---
 
