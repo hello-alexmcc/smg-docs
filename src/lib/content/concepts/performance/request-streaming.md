@@ -192,7 +192,7 @@ A worker spec can override the connection settings in its `http_pool` block:
 |-------|---------|-------------|
 | `pool_idle_timeout_secs` | `--upstream-pool-idle-timeout-secs` | Idle timeout for pooled connections |
 | `pool_max_idle_per_host` | `500` | Idle connections kept per worker host |
-| `connect_timeout_secs` | `10` | TCP connect timeout |
+| `connect_timeout_secs` | `10` | TCP connect timeout; kept at least one second below the request timeout (`timeout_secs`), so a dark worker fails the attempt before the request's own deadline |
 | `timeout_secs` | `--request-timeout-secs` | Total time for one request, including a streamed response |
 | `http2` | Negotiated | Pin HTTP/2 (`true`) or HTTP/1.1 (`false`); see [Upstream HTTP/2](#upstream-http2) |
 
