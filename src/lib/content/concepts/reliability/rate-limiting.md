@@ -166,7 +166,7 @@ Every admission shed uses the gateway's standard error format: a JSON body, an `
 ```json
 {
   "error": {
-    "type": "Service Unavailable",
+    "type": "server_error",
     "code": "admission_queue_timeout",
     "message": "timed out waiting for an admission slot",
     "param": null

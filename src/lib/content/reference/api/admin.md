@@ -1086,7 +1086,7 @@ Errors that the gateway generates itself, for example when no worker is availabl
 ```json
 {
   "error": {
-    "type": "Service Unavailable",
+    "type": "server_error",
     "code": "no_workers",
     "message": "No workers are available",
     "param": null
@@ -1094,7 +1094,7 @@ Errors that the gateway generates itself, for example when no worker is availabl
 }
 ```
 
-`type` is the reason phrase of the HTTP status (`Not Found`, `Service Unavailable`, ...), and `param` is always `null`. The inference endpoints use the same envelope; see [Error Responses](openai.md#error-responses) in the OpenAI-compatible API reference.
+`type` is the public API's vocabulary (`invalid_request_error` for a 4xx, `permission_error` for a 403, `rate_limit_error` for a 429, `server_error` for a 5xx), and `param` is always `null`. The inference endpoints use the same envelope; see [Error Responses](openai.md#error-responses) in the OpenAI-compatible API reference.
 
 ---
 

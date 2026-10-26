@@ -489,12 +489,12 @@ SMG produces Anthropic's error format (`{"type": "error", ...}`) only inside an 
 | HTTP or PD worker | Upstream status | The upstream body, unchanged |
 | The Anthropic API | Upstream status | The upstream body, minus the organization and project identifiers in its error message (see [Anthropic API Backend](#anthropic-api-backend)) |
 
-The standard envelope names the HTTP status in `type` and repeats `code` in the `X-SMG-Error-Code` header. For example, an over-long prompt on a gRPC worker:
+The standard envelope carries the Messages API's error type in `type` (`invalid_request_error` for a 400, `authentication_error`, `permission_error`, `not_found_error`, `request_too_large`, `rate_limit_error`, `overloaded_error` for a 503, `timeout_error` for a 504, `api_error` for another 5xx) and repeats `code` in the `X-SMG-Error-Code` header. For example, an over-long prompt on a gRPC worker:
 
 ```json
 {
   "error": {
-    "type": "Bad Request",
+    "type": "invalid_request_error",
     "code": "context_length_exceeded",
     "message": "This model's maximum context length is 32768 tokens. However, your request has 40210 input tokens. Please reduce the length of the input.",
     "param": null
