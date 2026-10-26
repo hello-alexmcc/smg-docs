@@ -76,7 +76,7 @@ POST /v1/responses
 | `model` | string | Yes | Model identifier |
 | `input` | string or array | Yes | Input text or array of input items. Must not be empty. In v1.11.0 and earlier an array must also contain at least one message; see [Input Formats](#input-formats) |
 | `instructions` | string | No | System instructions for the model |
-| `max_output_tokens` | integer | No | Maximum tokens to generate (at least 16) |
+| `max_output_tokens` | integer | No | Maximum tokens to generate (at least 1, as `max_tokens` on the other APIs; the public API's own floor of 16 is not imposed) |
 | `max_tool_calls` | integer | No | Maximum tool calls SMG executes for this response (at least 1); see [Tool Call Limits](#tool-call-limits) |
 | `temperature` | number | No | Sampling temperature (0-2), default: 1.0 |
 | `top_p` | number | No | Nucleus sampling parameter, greater than 0 and at most 1 |
@@ -105,12 +105,12 @@ SMG accepts is declared. Besides the fields above and the
 Codex, is also accepted but not forwarded: SMG leaves it out of the request bodies it
 sends to workers and providers.
 
-These rules match the public API's request contract and are new on main after v1.12.0. In
-v1.12.0 and earlier, unknown top-level parameters are ignored, `max_output_tokens` only
-has to be at least 1, `metadata` is not size-checked, and
+These rules match the public API's request contract and apply since v1.13.0. In
+v1.12.0 and earlier, unknown top-level parameters are ignored, `metadata` is not
+size-checked, and
 `top_logprobs` without `message.output_text.logprobs` in `include` is rejected with
 `400` — on main that combination is accepted. The input-role, tool, and structured-output
-rules below are likewise new on main and not enforced in v1.12.0 and earlier.
+rules below likewise apply since v1.13.0 and are not enforced in v1.12.0 and earlier.
 
 ### Input Formats
 
