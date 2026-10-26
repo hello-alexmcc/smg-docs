@@ -8,7 +8,7 @@ Complete reference for the Prometheus metrics SMG exports. Metrics are grouped b
 
 A series appears on `/metrics` only after the first event that records it, and several groups exist only when the feature that produces them is enabled. Each entry says when it is emitted.
 
-Unreleased: current main publishes the overload-shed, retry, and circuit-breaker transition families at zero before their first event — the overload and retry families at gateway start-up, each worker's breaker transitions when the worker is registered — so `absent()` alerts stay quiet on a healthy process and `increase()` catches the first event after a restart. In v1.11.0 these families appear only on their first event. Their entries below list the exact series.
+Since v1.13.0 the gateway publishes the overload-shed, retry, and circuit-breaker transition families at zero before their first event — the overload and retry families at gateway start-up, each worker's breaker transitions when the worker is registered — so `absent()` alerts stay quiet on a healthy process and `increase()` catches the first event after a restart. In v1.12.0 and earlier these families appear only on their first event. Their entries below list the exact series.
 
 ---
 
@@ -1248,7 +1248,7 @@ Requests shed with `503 worker_overload_protection_shed`. The response carries `
 | `dispatch` | The selected worker became overloaded between selection and dispatch |
 | `pd_admission` | A gRPC prefill-decode dispatch found no room on the decode engine (see `smg_pd_admission_sheds_total`); this stage does not depend on overload protection being enabled |
 
-Unreleased: current main publishes all three `stage` series at zero when the metrics listener starts, whether or not overload protection is enabled; the same start-up pass zeroes the selection-stage fallback counters `smg_worker_overload_fallback_total` and `smg_worker_liveness_fallback_total`. `smg_workers_overloaded` is not pre-published: the gauge still first appears when a load poll flips a worker's overload flag.
+Since v1.13.0 the gateway publishes all three `stage` series at zero when the metrics listener starts, whether or not overload protection is enabled; the same start-up pass zeroes the selection-stage fallback counters `smg_worker_overload_fallback_total` and `smg_worker_liveness_fallback_total`. `smg_workers_overloaded` is not pre-published: the gauge still first appears when a load poll flips a worker's overload flag.
 
 ```promql
 # Overload sheds per second, by stage
@@ -1312,7 +1312,7 @@ Circuit breaker state transitions.
 
 States: `closed`, `open`, `half_open`
 
-Unreleased: current main publishes the five transitions a breaker can make (`closed` → `open`, `open` → `half_open`, `open` → `closed`, `half_open` → `closed`, `half_open` → `open`) at zero for each worker when it is registered, so `increase()` sees a worker's first trip. `smg_worker_cb_outcomes_total` is not pre-published and still appears per worker with its first recorded outcome.
+Since v1.13.0 the gateway publishes the five transitions a breaker can make (`closed` → `open`, `open` → `half_open`, `open` → `closed`, `half_open` → `closed`, `half_open` → `open`) at zero for each worker when it is registered, so `increase()` sees a worker's first trip. `smg_worker_cb_outcomes_total` is not pre-published and still appears per worker with its first recorded outcome.
 
 #### `smg_worker_cb_outcomes_total`
 
@@ -1352,7 +1352,7 @@ Times a worker's open circuit breaker went half-open because the worker's health
 
 ### Retry Metrics
 
-Unreleased: current main publishes these three families at gateway start-up: `smg_worker_retries_total` and `smg_worker_retries_exhausted_total` at zero for every combination of the `regular`, `prefill`, and `decode` worker types and the ten `endpoint` values, and the `attempt="1"` series of `smg_worker_retry_backoff_seconds` as an empty distribution (a `_count` of 0; later attempts still appear on their first backoff). The external-provider series (`worker_type="external"`) are not pre-published: each appears on its first respective event — `smg_worker_retries_total` on the first retry against a provider, `smg_worker_retries_exhausted_total` on the first exhaustion.
+Since v1.13.0 the gateway publishes these three families at start-up: `smg_worker_retries_total` and `smg_worker_retries_exhausted_total` at zero for every combination of the `regular`, `prefill`, and `decode` worker types and the ten `endpoint` values, and the `attempt="1"` series of `smg_worker_retry_backoff_seconds` as an empty distribution (a `_count` of 0; later attempts still appear on their first backoff). The external-provider series (`worker_type="external"`) are not pre-published: each appears on its first respective event — `smg_worker_retries_total` on the first retry against a provider, `smg_worker_retries_exhausted_total` on the first exhaustion.
 
 #### `smg_worker_retries_total`
 
