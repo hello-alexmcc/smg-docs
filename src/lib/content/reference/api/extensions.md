@@ -122,6 +122,15 @@ The WASM routes need `--enable-wasm`; without it they answer `500`.
 
 A vLLM gRPC worker starts and stops the engine's own torch profiler on every rank; the trace directory and the profiler options are fixed by the engine's launch configuration and cannot be set per request. A `/start_profile` that sets any of the options above therefore lists vLLM workers under `failed`; to profile them, send a start that sets none of these options (a body with only `url` is fine).
 
+### Diagnostics
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/inflight` | The requests this gateway process is serving right now: its instance id and their sequence numbers |
+| `POST` | `/heap_profile` | A jemalloc heap profile of this gateway process, written under `--jemalloc-prof-dir` (a `jemalloc-profiling` build; `501` otherwise) |
+
+Both are control-plane routes. See [Diagnostics](admin.md#diagnostics) for the response shapes and the preconditions a heap profile needs.
+
 ### Cache and Load Utilities
 
 | Method | Path | Purpose |
