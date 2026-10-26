@@ -355,7 +355,7 @@ POST /v1/completions
 | `top_p` | number | No | Nucleus sampling parameter, greater than 0 and at most 1 |
 | `n` | integer | No | Completions per prompt (1-128) |
 | `best_of` | integer | No | Candidates to generate server-side (0-20); must be greater than `n` and cannot be combined with `stream` |
-| `logprobs` | integer | No | Log probabilities of the most likely tokens (0-5) |
+| `logprobs` | integer | No | Log probabilities of the most likely tokens (0-20, the bound of chat's `top_logprobs`; the public API's own limit of 5 is not imposed) |
 | `stream` | boolean | No | Enable streaming |
 | `stream_options` | object | No | `include_usage`; only allowed with `stream: true` |
 | `stop` | string/array | No | Up to 4 non-empty stop sequences |
