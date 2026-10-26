@@ -32,7 +32,7 @@ Store complete conversation history including messages, tool calls, and reasonin
 
 ### :material-tune: Configurable Retention
 
-Redis entries expire after `--redis-retention-days` (default 30 days). The other backends keep data until it's deleted (the in-memory backend, until the gateway restarts).
+Redis entries expire after `--redis-retention-days` (default 30 days). The in-memory backend keeps a record for `--history-memory-retention-secs` (default 86400, one day) and at most `--history-memory-max-responses` stored responses and `--history-memory-max-items` conversation items, the oldest dropped first; it loses everything on restart. PostgreSQL and Oracle keep data until it's deleted.
 
 </div>
 
@@ -74,6 +74,12 @@ The default in-process storage. Suitable for development and testing.
 smg --history-backend memory
 ```
 
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--history-memory-max-responses` | `10000` | Most stored responses kept; the oldest go first, on every write (a stored response takes about 12 KB) |
+| `--history-memory-max-items` | `100000` | Most conversation items kept; the oldest go first and leave every conversation that listed them (an item takes about 1.5 KB) |
+| `--history-memory-retention-secs` | `86400` | How long a record is kept, in seconds, checked on every write; `0` keeps a record until a count bound drops it. A conversation is kept that long after its last use (created, read or updated); a background response still running is not dropped by a count bound |
+
 <div class="grid" markdown>
 
 <div class="card" markdown>
@@ -92,7 +98,7 @@ smg --history-backend memory
 
 - Data lost on restart
 - Not shared across instances
-- Memory grows with conversations
+- Bounded by record counts and a retention, not by bytes: size the two counts for the process
 
 </div>
 
