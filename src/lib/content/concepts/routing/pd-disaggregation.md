@@ -143,7 +143,7 @@ A restarted vLLM process without a pinned `engine_id` comes back with a new KV e
 #### MoRI-IO (HTTP)
 
 !!! note "Availability"
-    MoRI-IO support is on `main` and newer than v1.11.0: it came with smg-project/smg#2732, and concurrent WRITE dispatch with smg-project/smg#2742. v1.11.0 does not recognize `MoRIIOConnector`. It handles such workers as passthrough, so it neither tags the prefill leg nor checks a handoff, and it pairs READ and WRITE engines alike under the transport `moriioconnector`. A MoRI-IO decode engine behind v1.11.0 therefore runs without its KV, as described below.
+    MoRI-IO support is in v1.12.0 and later: it came with smg-project/smg#2732, and concurrent WRITE dispatch with smg-project/smg#2742. v1.11.0 does not recognize `MoRIIOConnector`. It handles such workers as passthrough, so it neither tags the prefill leg nor checks a handoff, and it pairs READ and WRITE engines alike under the transport `moriioconnector`. A MoRI-IO decode engine behind v1.11.0 therefore runs without its KV, as described below.
 
 vLLM's `MoRIIOConnector` moves the KV cache over RDMA with MoRI-IO in one of two modes. In READ mode (`"read_mode": true` in `kv_connector_extra_config` on both engines), the decode engine pulls the KV after the prefill leg returns. In WRITE mode, the default, the prefill engine pushes the KV into blocks the decode engine allocates. SMG sends the legs sequentially by default in both modes; a WRITE pair can opt into concurrent dispatch with the decode worker's `moriio_write_dispatch` label (see below).
 
@@ -434,7 +434,7 @@ On the gRPC path, SMG counts the prompt tokens itself and rejects a prompt longe
 | 502 | `moriio_handoff_invalid` | MoRI-IO: the prefill returned no usable handoff — missing, foreign, or with fields the decode engine cannot parse. Sequential dispatch sends no decode leg; concurrent dispatch drops the one already sent |
 | 501 | `moriio_grpc_pd_unsupported` | gRPC: MoRI-IO PD is supported only by the HTTP PD router |
 
-The `moriio_*` codes are newer than v1.11.0.
+The `moriio_*` codes exist since v1.12.0.
 
 The `no_available_workers` message names the missing leg of an incomplete pair (prefill, decode, or, in EPD mode, encode) on both transports, instead of calling the registered leg unhealthy; retry once that leg is back. When a leg's workers are all unhealthy or circuit-open, the message names the leg over HTTP but not over gRPC.
 
@@ -518,8 +518,8 @@ Long prompts with short outputs need relatively more prefill capacity. Short pro
 | `smg_pd_ttft_seconds` | Histogram | `backend_type`, `model`, `runtime` | Prefill dispatch to the first decode output. HTTP PD, and gRPC streaming on SGLang and TokenSpeed pairs |
 | `smg_pd_prefill_duration_seconds` | Histogram | `backend_type`, `model`, `runtime` | Prefill-leg duration. HTTP PD and gRPC vLLM |
 | `smg_pd_kv_transfer_duration_seconds` | Histogram | `backend_type`, `model`, `runtime` | Prefill completion to decode dispatch. gRPC vLLM |
-| `smg_pd_kv_connector_mode_total` | Counter | `mode` (`nixl`, `mooncake`, `moriio`, `passthrough`; `moriio` is newer than v1.11.0) | vLLM dispatches, sequential and MoRI-IO concurrent |
-| `smg_pd_kv_transfer_failures_total` | Counter | — | A NIXL prefill returned no `kv_transfer_params`, so decode recomputed the prompt; or, newer than v1.11.0, a MoRI-IO pair or handoff check failed, so the request failed |
+| `smg_pd_kv_connector_mode_total` | Counter | `mode` (`nixl`, `mooncake`, `moriio`, `passthrough`; `moriio` since v1.12.0) | vLLM dispatches, sequential and MoRI-IO concurrent |
+| `smg_pd_kv_transfer_failures_total` | Counter | — | A NIXL prefill returned no `kv_transfer_params`, so decode recomputed the prompt; or, since v1.12.0, a MoRI-IO pair or handoff check failed, so the request failed |
 | `smg_pd_bootstrap_failures_total` | Counter | — | HTTP bootstrap injection failed |
 | `smg_pd_admission_waits_total` | Counter | — | gRPC dispatches admitted after waiting for a decode slot |
 | `smg_pd_admission_sheds_total` | Counter | — | gRPC dispatches shed at the decode admission window |

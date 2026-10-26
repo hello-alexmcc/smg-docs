@@ -266,7 +266,7 @@ EPD mode only.
 
 ### Prefill Admission
 
-These three flags landed on `main` after the v1.11.0 release (smg-project/smg#1961), so v1.11.0 builds do not have them. They cap how many Prefill requests the gateway keeps in flight on each prefill worker, counting only this gateway process's own dispatches. Requests over the cap wait in one FIFO queue per gateway process, not per worker.
+These three flags exist since v1.12.0 (smg-project/smg#1961); v1.11.0 builds do not have them. They cap how many Prefill requests the gateway keeps in flight on each prefill worker, counting only this gateway process's own dispatches. Requests over the cap wait in one FIFO queue per gateway process, not per worker.
 
 | Option | Default | Description |
 |--------|---------|-------------|
