@@ -125,8 +125,6 @@ Routing flags configure the default policy (`--policy`). In PD mode, `--prefill-
 | `--cache-index` | `tree` | Index under-layer: `tree` (radix prefix trees) or `hash` (a TTL'd exact-match placement map keyed on request heads at `--cache-boundaries`; token-bearing requests only, untokenized requests stay load-balanced). `hash` requires `--cache-boundaries`. |
 | `--cache-boundaries` | none | Comma-separated, strictly ascending token positions (each greater than 0) at which serving engines retain reusable prefix state, for example `2048,8192`. `cache_aware` with `--cache-index hash`, and `prefix_hash`, hash request heads at the deepest boundary the request reaches. |
 | `--cache-ttl-secs` | `180` | Seconds a hash-index placement stays routable. Set it close to the engines' cache retention. Must be at least `1`. |
-| `--kv-indexer-ttl-secs` | unset | Deprecated and ignored: the TTL prune of the positional indexer, which the chain index replaced. The chain index holds what the engines report and shrinks with their removals, so it has no prune. The flag is still accepted so existing launch lines keep working; a value above `0` logs a warning at start-up under cache-aware routing. Goes in a later release; drop it from launch lines. |
-| `--kv-indexer-max-entries` | unset | Deprecated and ignored: the capacity ceiling of the positional indexer's prune, gone with it; accepted and warned about like `--kv-indexer-ttl-secs`. Goes in a later release. |
 
 The event-driven options apply when workers publish KV cache events; see [KV Events Cache-Aware Routing](../getting-started/kv-events-cache-aware.md). `--kv-index` is deprecated: the chain index is the only KV index behind cache-aware routing, so the flag takes `chain` only and does nothing (`positional` names the index that was removed and is refused); it goes in a later release.
 
@@ -1024,7 +1022,7 @@ smg launch \
 - **Different values:** `--policy` and `--decode-policy` do not accept `bucket` (`--prefill-policy` does). `--backend` accepts only `sglang`, `vllm`, `tokenspeed`, `openai`, and `anthropic`, and defaults to `sglang`, which behaves like leaving the Rust flag unset. `--reasoning-parser` and `--tool-call-parser` are checked against the registered names at parse time.
 - **Environment variables:** Python reads `SMG_POSTGRES_DB_URL` (or the older `POSTGRES_DB_URL`), `SMG_REDIS_URL` (or the older `REDIS_URL`), `POSTGRES_POOL_MAX`, `REDIS_POOL_MAX`, and `REDIS_RETENTION_DAYS` as defaults for its storage flags; the Rust CLI reads none of them, only the two file fallbacks `SMG_POSTGRES_DB_URL_FILE` and `SMG_REDIS_URL_FILE`. Both read the Oracle `ATP_*` variables. `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_JWKS_URI`, and `CONTROL_PLANE_API_KEYS` are Rust-only.
 - **Multiple values:** `--control-plane-api-keys` and `--jwt-role-mapping` accept several values after one flag in Python; the Rust CLI takes one value per flag.
-- **Not available in Python:** `--disable-audit-logging`, `--kv-indexer-ttl-secs`, `--kv-indexer-max-entries`, and the hidden `--runtime` alias of `--backend`. The drain, engine-metrics, JWT role claim, PD pairing, priority-scheduler, runtime-thread, tenant-key, tenant-header, tenant-rate-limit and WebRTC flags, once Python gaps, are in both.
+- **Not available in Python:** `--disable-audit-logging` and the hidden `--runtime` alias of `--backend`. The drain, engine-metrics, JWT role claim, PD pairing, priority-scheduler, runtime-thread, tenant-key, tenant-header, tenant-rate-limit and WebRTC flags, once Python gaps, are in both.
 
 ---
 

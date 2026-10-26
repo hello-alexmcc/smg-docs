@@ -259,7 +259,7 @@ SMG logs `Sequence gap detected, reconnecting for replay from seq N` on a gap, a
 
 The event index holds what the engines report: block-removed and all-blocks-cleared events shrink it as each engine evicts, and when a worker is removed, its entries go with it. There is no prune and no size flag to set.
 
-`--kv-indexer-ttl-secs` and `--kv-indexer-max-entries` are deprecated and ignored: they bounded the positional indexer, which the chain index replaced. The Rust `smg` binary still accepts them so existing launch lines keep working, and logs a warning at start-up when either is set. Both flags will be removed in a later release; drop them from your launch lines.
+`--kv-indexer-ttl-secs` and `--kv-indexer-max-entries`, which bounded the positional indexer the chain index replaced, are gone: the `smg` binary refuses a launch line that still carries one as an unknown argument. Drop them from your launch lines.
 
 ---
 
