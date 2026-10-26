@@ -1085,7 +1085,7 @@ Described in [Multimodal Configuration](#multimodal-configuration).
 
 ### Engine Servicer Variables
 
-Read from the worker's environment by the Rust engine servicers (see [gRPC Workers](../getting-started/grpc-workers.md)), not by the gateway; none has a flag.
+Read from the worker's environment by the Rust engine servicers (see [gRPC Workers](../getting-started/grpc-workers.md)), not by the gateway; none has a flag. Of these, only `SMG_KV_EVENT_HASH_CHECK` is read by the Python servicer's relay as well, under the same spellings.
 
 | Environment Variable | Default | Description |
 |---------------------|---------|-------------|
@@ -1093,7 +1093,7 @@ Read from the worker's environment by the Rust engine servicers (see [gRPC Worke
 | `SMG_KV_EVENT_RELAY_START` | subscribe at start | When the servicer's KV-event relay subscribes to the engine's event publishers. By default it subscribes as soon as the servicer serves, probing the publisher's port every second until the engine binds it, so the relay's history covers the engine from its first batch and a reconnecting gateway is served from it. `lazy` defers the subscription to the first `SubscribeKvEvents` call, for a memory-constrained host; nothing is recorded before then. See [KV Events Cache-Aware Routing](../getting-started/kv-events-cache-aware.md#recovery-after-gaps). |
 | `SMG_KV_EVENT_HISTORY_BATCHES` | `10000` | Relayed batches the relay keeps per publisher rank: the window a reconnecting gateway resumes from. A resume cursor older than the window is refused, and the gateway then resubscribes from zero and receives a snapshot of the engine's live blocks instead. A non-number logs a warning and keeps the default. |
 | `SMG_KV_EVENT_HISTORY_BYTES` | `268435456` (256 MiB) | Byte budget of that history over the encoded batches, per publisher rank; the oldest batches leave when either cap is exceeded. A non-number logs a warning and keeps the default. |
-| `SMG_KV_EVENT_HASH_CHECK` | unset (off) | `sglang` or `vllm-sha256-cbor` (any case) makes the relay recompute the engine's own block hash for every stored block it can verify and count the mismatches in its counters, which it logs with its summary every 500 relayed batches and when it closes. Nothing is dropped for it. The Python servicer's relay reads the same variable and values. An unknown value logs a warning and leaves the check off. |
+| `SMG_KV_EVENT_HASH_CHECK` | unset (off) | `sglang` or `vllm-sha256-cbor` (any case) makes the relay recompute the engine's own block hash for every stored block it can verify and count the mismatches in its counters, which it logs with its summary every 500 relayed batches and when it closes. Nothing is dropped for it. An unknown value logs a warning and leaves the check off. |
 
 ### Python Launcher Variables
 
