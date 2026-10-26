@@ -341,7 +341,7 @@ The branch counter and the match-ratio histogram cover string- and token-tree de
 
 With `RUST_LOG=info,smg::policies::cache_aware=debug` (which overrides `--log-level`), each tree and hash decision logs a `Cache-aware selection` line with its `index`, `branch`, `worker` and `model_id` (plus `matched_ratio` and `threshold` for trees), and KV-event decisions log `Event-driven routing: overlap match` or `Event-driven routing: no overlap, expected-wait fallback`.
 
-For a dispatch's full decision record (candidates, gates, scores, the prediction and the chosen worker) in the log or in the `x-smg-cache-trace` response header, see [Routing Trace Variables](../../reference/configuration.md#routing-trace-variables).
+For a dispatch's full decision record in the log (candidates, gates, scores, the prediction and the chosen worker), or its reduced per-selection record in the `x-smg-cache-trace` response header (omitted when it would exceed 2048 bytes or is not plain ASCII), see [Routing Trace Variables](../../reference/configuration.md#routing-trace-variables).
 
 ### Useful PromQL Queries
 
