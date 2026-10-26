@@ -599,7 +599,7 @@ Changes a few fields in place. Omitted fields keep their current values. The wor
 
 Any other field, such as `overload`, `http_pool`, `resilience`, or `models`, is ignored. Use `PUT` to change those.
 
-In v1.11.0, a `PATCH` also rebuilds the worker's circuit breaker with built-in thresholds (5 failures, 2 successes, 30 seconds), ignoring the gateway's circuit-breaker flags and any `resilience` overrides until a `PUT` re-registers the worker.
+Since v1.12.0 a `PATCH` keeps the worker's circuit breaker and its configuration. In v1.11.0 it rebuilt the breaker with built-in thresholds (5 failures, 2 successes, 30 seconds), ignoring the gateway's circuit-breaker flags and any `resilience` overrides until a `PUT` re-registered the worker.
 
 **Response:** `202 Accepted`
 ```json
