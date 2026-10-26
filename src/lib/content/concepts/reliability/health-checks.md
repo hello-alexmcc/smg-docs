@@ -368,7 +368,7 @@ The gates exclude a worker independently, but recovery is coupled: a promotion b
 
 The trial follows the usual [half-open rules](circuit-breakers.md#state-transitions): `--cb-success-threshold` consecutive successes close the circuit, and one failure reopens it for a full timeout. Passing probes on a worker that is already `Ready` are not a promotion and start no new trial, so a flapping worker gets one trial per demotion-and-promotion cycle.
 
-Promotion readmission is newer than v1.12.0; see [State Transitions](circuit-breakers.md#state-transitions) for the behavior of earlier releases.
+Promotion readmission exists since v1.13.0; see [State Transitions](circuit-breakers.md#state-transitions) for the behavior of earlier releases.
 
 **Key differences**:
 

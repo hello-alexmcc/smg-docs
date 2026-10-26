@@ -33,7 +33,7 @@ HTTP workers must implement the Messages API themselves; SMG forwards the reques
 
 In IGW mode (`--enable-igw`), SMG picks the backend per request from the workers that serve the requested `model`. A model served by an external Anthropic worker goes to the Anthropic API backend (see [External Providers](../../getting-started/external-providers.md)). The other external providers answer `/v1/messages` with `501`.
 
-Token counting on gRPC and ZMQ workers is newer than v1.12.0 (v1.12.0 and earlier answer `501 Not Implemented`); see [Backend Support](#backend-support).
+Token counting on gRPC and ZMQ workers applies since v1.13.0 (v1.12.0 and earlier answer `501 Not Implemented`); see [Backend Support](#backend-support).
 
 ---
 
@@ -316,7 +316,7 @@ A served model whose tokenizer the gateway is still loading gets `503` (`tokeniz
 
 A request that does not render gets `400` (`process_messages_failed`), and a rendered prompt that fails to encode gets `500` (`tokenization_failed`).
 
-Gateway-side counting is newer than v1.12.0. In v1.12.0 and earlier, gRPC and ZMQ workers answer `/v1/messages/count_tokens` with `501 Not Implemented`, and IGW mode picks only among the model's HTTP and HTTP PD workers.
+Gateway-side counting applies since v1.13.0. In v1.12.0 and earlier, gRPC and ZMQ workers answer `/v1/messages/count_tokens` with `501 Not Implemented`, and IGW mode picks only among the model's HTTP and HTTP PD workers.
 
 ---
 
@@ -506,7 +506,7 @@ A few gateway answers are plain text instead: the `404` when no router serves th
 
 A `/v1/messages/count_tokens` body that does not parse or fails validation is refused with the same `400` `invalid_request_error` envelope as a `/v1/messages` body.
 
-That envelope is newer than v1.12.0: in v1.12.0 and earlier, the count_tokens answer to a body that does not parse is plain text (`400` for invalid JSON, `415` without `Content-Type: application/json`, `422` for a missing field or a field of the wrong type).
+That envelope applies since v1.13.0: in v1.12.0 and earlier, the count_tokens answer to a body that does not parse is plain text (`400` for invalid JSON, `415` without `Content-Type: application/json`, `422` for a missing field or a field of the wrong type).
 
 Errors that SMG detects before the stream starts are returned as ordinary HTTP error responses, not as a stream, even when `stream` is `true`. After the stream has started, the gRPC path and SMG's MCP tool loop report a failure as an Anthropic `error` event and end the stream. The MCP tool loop starts its stream before it first calls the model, so even an upstream error on that first call arrives this way:
 
