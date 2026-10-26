@@ -86,7 +86,7 @@ Routing flags configure the default policy (`--policy`). In PD mode, `--prefill-
 | `round_robin` | Cycles through healthy workers. |
 | `passthrough` | Always the first healthy worker. It reads no load reports (so it never forces load polling under `--disable-load-monitoring`) and starts no KV-event subscription, and is meant for single-backend gateways; with several workers registered it logs one warning and still sends everything to the first. |
 | `cache_aware` | The worker holding the longest matching prompt prefix. Below `--cache-threshold`, or when the spill gate fires, it falls back to least-load expected-wait selection. See [Cache-Aware Routing](../concepts/routing/cache-aware.md). |
-| `power_of_two` | Samples two healthy workers and takes the one with the lower least-load expected wait. Needs at least two workers unless service discovery or IGW mode is on. |
+| `power_of_two` | Samples two healthy workers and takes the one with the lower least-load expected wait. Needs at least two workers unless service discovery, IGW mode or `--dp-aware` (each URL registers one worker per DP rank) is on. |
 | `least_load` | The worker with the lowest expected wait: queued plus in-flight token work divided by throughput, plus a KV-pressure term. See [Least Load Policy Options](#least-load-policy-options). |
 | `prefix_hash` | Hashes the request's leading tokens onto a consistent-hash ring and walks away from overloaded workers. |
 | `consistent_hashing` | Consistent-hash ring keyed on the request's routing key or, without one, on its `X-Forwarded-For` or `Cookie` header. `X-SMG-Target-Worker` picks a worker by index; a request with none of these goes to a random worker. |

@@ -343,7 +343,7 @@ The prefill and decode legs each run their own policy instance, so a stateful po
 |--------|---------|--------|-------|
 | `cache_aware` | :material-check: | :material-check: | Prompt-prefix affinity; the prompt's KV cache is computed on prefill |
 | `prefix_hash`, `consistent_hashing` | :material-check: | :material-check: | Hash-based affinity |
-| `power_of_two`, `least_load` | :material-check: | :material-check: | Load-based. At startup, `--prefill-policy power_of_two` or `--decode-policy power_of_two` needs at least two workers on that leg (not checked with service discovery or `--enable-igw`) |
+| `power_of_two`, `least_load` | :material-check: | :material-check: | Load-based. At startup, `--prefill-policy power_of_two` or `--decode-policy power_of_two` needs at least two workers on that leg (not checked with service discovery, `--enable-igw` or `--dp-aware`, under which each URL registers one worker per DP rank) |
 | `round_robin`, `random` | :material-check: | :material-check: | Even or random spread |
 | `manual` | :material-check: | :material-check: | Sticky keys are tracked per leg |
 | `bucket` | :material-check: | :material-close: | Rejected as a decode policy at startup |
