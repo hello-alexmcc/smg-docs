@@ -4,7 +4,7 @@ title: Tokenization and Parsing APIs
 
 # Tokenization and Parsing APIs
 
-SMG exposes utility endpoints for tokenization, detokenization, function-call parsing, and reasoning separation. They use the gateway's own tokenizers and the same legacy parser registries as the [gRPC pipeline](../concepts/architecture/grpc-pipeline.md). You can use them to see exactly how SMG tokenizes a prompt or splits a model's raw output.
+SMG exposes utility endpoints for tokenization, detokenization, function-call parsing, and reasoning separation. They use the gateway's own tokenizers and the per-model parser registries the [gRPC pipeline](../concepts/architecture/grpc-pipeline.md) reads with under `--parser legacy`: whatever `--parser` says, these endpoints read with the per-model parsers, never with a [Symphony table](../concepts/architecture/grpc-pipeline.md#symphony-parsing). You can use them to see exactly how SMG tokenizes a prompt or splits a model's raw output.
 
 <div class="prerequisites" markdown>
 
@@ -114,7 +114,7 @@ Errors use the body `{"error": {"message": "...", "type": "..."}}`:
 
 `POST /parse/function_call`
 
-Runs one tool-call parser over complete model output, the same way the gateway parses a non-streaming response in its default (legacy) parser mode.
+Runs one tool-call parser over complete model output, the same way the gateway's legacy path (`--parser legacy`) parses a non-streaming response.
 
 [`--parser symphony`](../concepts/architecture/grpc-pipeline.md#symphony-parsing) and the `X-SMG-Parser` header change only the serving pipeline. This endpoint always runs the legacy parser named in `tool_call_parser`, never a Symphony table; a name that only a table answers to is rejected as unknown.
 
