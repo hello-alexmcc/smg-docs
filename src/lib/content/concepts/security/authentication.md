@@ -419,7 +419,7 @@ Full access to all control plane APIs:
 
 ### User Role
 
-No control plane access. Every control plane route answers a `user` credential with `403 Admin role required for control plane access`.
+Read-only control plane access: `GET` and `HEAD` on the control plane routes. Every other method answers a `user` credential with `403 Admin role required for this control plane operation`.
 
 Roles don't apply to data plane routes (chat completions, completions, embeddings, and the rest): those accept only `--api-key` and `--tenant-api-key` credentials, never JWTs or control plane API keys. `/v1/models` is public.
 

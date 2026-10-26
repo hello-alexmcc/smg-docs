@@ -31,7 +31,7 @@ These routes are guarded by control-plane auth middleware when configured:
 - Deprecated load alias: `/get_loads` (the public `/loads` route it aliases needs no credential)
 - RL control plane: `/v1/rl/*`, mounted only with `--enable-rl`
 
-Control-plane middleware requires the **admin role** on every one of these routes. A missing or invalid credential gets `401`, and a valid credential with the `user` role gets `403`.
+Control-plane middleware requires the **admin role** for every method on these routes but the read-only ones: a valid credential with the `user` role may `GET` and `HEAD` them, and gets `403` (`Admin role required for this control plane operation`) on any other method. A missing or invalid credential gets `401`.
 
 Control-plane credentials apply only to these routes. The inference routes, such as `/v1/chat/completions`, check the shared `--api-key` and per-tenant keys instead, and stay open when neither is set. Set `--api-key` as well to protect them.
 
@@ -79,7 +79,7 @@ curl -H "Authorization: Bearer super-secret-key" \
   http://localhost:30000/v1/tokenizers
 ```
 
-Format: `id:name:role:key` where role is `admin` or `user`. Repeat the flag to add more keys. A `user` key authenticates, but every control-plane route answers it with `403`.
+Format: `id:name:role:key` where role is `admin` or `user`. Repeat the flag to add more keys. A `user` key reaches the read-only routes (`GET` and `HEAD`); every other control-plane method answers it with `403`.
 
 ---
 
