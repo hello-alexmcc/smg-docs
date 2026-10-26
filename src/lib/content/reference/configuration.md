@@ -165,7 +165,7 @@ These apply wherever `least_load` is the policy, including as `--prefill-policy`
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--dp-aware` | `false` | Discover each worker's data-parallel size at registration and register one routable worker per DP rank. |
-| `--dp-minimum-tokens-scheduler` | `false` | In the HTTP PD router, pick each prefill and decode DP rank by fewest tracked tokens instead of the worker's registered rank. |
+| `--dp-minimum-tokens-scheduler` | `false` | In the HTTP PD router, for an engine registered as one worker, pick each prefill and decode DP rank by fewest tracked tokens instead of the worker's registered rank. Under `--dp-aware` the engine's ranks are registered as workers and the routing policy's pick among them is the rank choice, so this flag chooses nothing there: the pair starts with a warning in the log and runs as `--dp-aware` alone does. |
 | `--enable-igw` | `false` | Inference Gateway (IGW) mode: build every router family and choose one per request from the requested model's workers (HTTP or gRPC, regular or disaggregated, external provider), so one gateway serves many models. `--service-discovery` turns it on automatically. |
 
 ---
