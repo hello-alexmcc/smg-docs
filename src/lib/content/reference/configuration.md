@@ -846,6 +846,54 @@ the cgroup-quota-derived default and any `TOKIO_WORKER_THREADS` value).
 | Environment | - |
 | Default | tokio default (`available_parallelism()`, cgroup-quota-aware) |
 
+### Fewer Worker Threads at Low Per-Instance Load
+
+The default worker count is right for an instance that is kept busy. An
+instance that serves a low request rate on its own (a few hundred requests per
+second or less, as in a fleet of many small gateway instances behind a load
+balancer) spends a visible share of its CPU time on the kernel side of the
+runtime rather than on its requests: with more workers than there is work, each
+request is handed between threads (the HTTP connection task, the request, the
+HTTP/2 client connection to the engine), and every hand-off to a parked worker
+is a wake-up and two context switches.
+
+**What the measurement showed.** On a CPU-only bed (one gateway in front of
+four mock engines, 64-token prompts, the same offered load on both runs), a
+gateway pinned to 2 worker threads instead of 8 handled a chat request with 5.1
+context switches instead of 6.9 (-26%), 30-60% fewer kernel instructions (the
+request's user-space instructions moved -2%, within the measurement's noise: the
+saving is the kernel side's), and 13-21% fewer CPU cycles in total. The kernel
+share is also the part of a request's cost that varies most with the host's
+load, so the saving is a steadier per-request cost as well as a lower one.
+
+**What it costs.** Fewer workers is less throughput headroom per instance: a
+burst above what the pinned workers drain queues behind the connection tasks
+instead of spreading over idle cores, so an instance sized this way is scaled
+out (more instances) rather than up when its rate grows. The saving is for
+ordinary prompts: inputs over 512 bytes are tokenized on the blocking pool, off
+the workers (one permit per CPU the process can see, independent of the worker
+count), and that hand-off (about 8 system calls and 2 context switches per
+request) remains with fewer workers. Keep the default for an instance that must
+absorb the whole load on its own, or whose traffic is bursty.
+
+**The setting.** `--runtime-worker-threads <n>` pins the count; left unset (the
+default), the runtime sizes itself to `available_parallelism()` as described
+above. The validator refuses `0` and counts above `4096`; a count above 4 x the
+CPUs available to the process starts with a warning. The measurement used `2`.
+After the change, watch `smg_tokio_worker_busy_ratio` and
+`smg_tokio_global_queue_depth` (see
+[Tokio Runtime Metrics](metrics.md#tokio-runtime-metrics)): busy ratios near
+`1.0` across the workers together with a growing global queue depth mean the
+instance is saturated and needs the headroom back, or another instance beside
+it; a high busy ratio on its own is ordinary full utilization.
+
+**Example** (one instance of a scaled-out fleet at a low per-instance rate):
+```bash
+smg launch \
+  --worker-urls http://engine-1:8000 \
+  --runtime-worker-threads 2
+```
+
 ---
 
 ## Python Launcher Differences
