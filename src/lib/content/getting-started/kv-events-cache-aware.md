@@ -186,7 +186,7 @@ The event index cuts each request's token IDs into blocks and looks the blocks u
 
 SMG picks the block size per model, in this order:
 
-1. **Learned from events** (highest priority): each worker's subscription records the block size of the first stored block it receives; the most recent value wins.
+1. **Learned from events** (highest priority): the first stored block a worker's subscription receives replaces the provisional size, and a larger block raises it; a smaller block never lowers it (hybrid engines publish, beside their full blocks, partial entries at their hash granularity, and a request chunked at that size would never match a full block).
 2. **`--block-size`** (router-wide default).
 
 The `kv_block_size` field of a worker spec registered through the [admin API](../reference/api/admin.md) (`POST /workers`) is accepted but not applied in v1.11.0. In practice, keep the engine's page size (SGLang `--page-size`, vLLM `--block-size`, TokenSpeed `--prefix-granularity`) and SMG's `--block-size` equal, and let SMG correct itself once events arrive. The approximate token tree always uses `--block-size`. Serve each model with one page size: with mixed sizes, the model's block size is whichever a worker reported last.
@@ -229,7 +229,7 @@ If you do not see the first line for a worker, the worker is not a gRPC worker, 
 WARN Backend does not implement SubscribeKvEvents, disabling KV event subscription for this worker worker_url=grpc://worker-1:50051
 ```
 
-**2. Backend block size learned.** Once the first stored block arrives, SMG records the backend's block size:
+**2. Backend block size learned.** Once the first stored block arrives, SMG records the backend's block size (a larger block arriving later raises it; a smaller one does not lower it):
 
 ```text
 INFO Learned block_size from KV event model_id=meta-llama/Llama-3.1-8B-Instruct block_size=16
