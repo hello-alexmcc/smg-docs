@@ -345,6 +345,7 @@ Environment-only RDMA settings, read by the gateway. The TokenSpeed worker reads
 | `SMG_VIDEO_MAX_INPUT_BYTES` | `268435456` (256 MiB) | Byte cap for one video input. |
 | `SMG_AUDIO_MAX_INPUT_BYTES` | `268435456` (256 MiB) | Byte cap for one audio input. |
 | `SMG_VIDEO_MAX_DECODED_BYTES` | `1073741824` (1 GiB) | Cap on a decoded video's RGB payload. |
+| `SMG_VIDEO_MAX_DECODE_PIXELS` | `1000000000000` (10^12) | Cap on one video decode's work, in pixels: the source frames the decoder must run through to produce the sampled frames, each counted as the clip's width times height. A decode past the cap is refused before any decoder starts, with an error that states the clip's frames, dimensions and pixels against the cap; a shorter or smaller clip, or a smaller frame budget, fits it. A positive integer; `0` or a non-number reads as the default. |
 | `SMG_AUDIO_MAX_DECODED_BYTES` | `268435456` (256 MiB) | Cap on decoded audio. |
 | `SMG_VIDEO_PROCESS_TIMEOUT_SECS` | `30` | Timeout in seconds for each external `ffmpeg`/`ffprobe` process that decodes video. |
 | `SMG_AUDIO_PROCESS_TIMEOUT_SECS` | `30` | The same timeout for audio decoding. |
@@ -353,6 +354,8 @@ Environment-only RDMA settings, read by the gateway. The TokenSpeed worker reads
 | `SMG_IMAGE_MAX_COUNT`, `SMG_VIDEO_MAX_COUNT`, `SMG_AUDIO_MAX_COUNT` | unset | Deployment-wide per-request media-count limit that replaces each model spec's limit; it never enables a modality the spec does not declare. `--mm-per-request-image-limit` wins for images. |
 | `SMG_VLLM_ENCODER_INPUT_DTYPE` | the worker's `multimodal_encoder_dtype` label, else `float32` | Wire dtype of encoder inputs sent to vLLM workers. |
 | `SMG_TOKENSPEED_ENCODER_INPUT_DTYPE` | the worker's `multimodal_encoder_dtype` label, else `bfloat16` | Wire dtype of encoder inputs sent to TokenSpeed workers. `SMG_TOKENSPEED_IMAGE_ENCODER_INPUT_DTYPE`, `SMG_TOKENSPEED_VIDEO_ENCODER_INPUT_DTYPE`, and `SMG_TOKENSPEED_AUDIO_ENCODER_INPUT_DTYPE` override it per modality. |
+| `SMG_MM_THREADS` | the smaller of the machine's parallelism and `8` in the gateway; no pool in a worker's own media pipeline | Threads of the dedicated pool that one image's preprocessing stages may spread over, read once when the pool is first built (the threads are named `smg-mm-<n>`). A positive integer; `0` or a non-number reads as unset. In a worker's own media pipeline each request's preprocessing stays on its own thread unless this is set. An operation that finds the pool busy runs on its caller's thread, so this is not a cap on preprocessing CPU under load. |
+| `SMG_MM_ONE_PASS_WIRE` | on | Whether the images of a request whose eligible workers all read one encoder-input dtype are preprocessed straight into that dtype, in one pass. `0`, `false`, `no` or `off` (any case) sends every request through the two-pass write instead: the neutral patch layout first, then the write in the worker's dtype at assembly. The bytes are the same either way. With `--mm-pixel-cache-mb` set, the one pass caches the wire bytes, twice the size of the neutral patches at the half-width dtypes and four times at `float32`, against the same budget, so the cache holds fewer images. Read once at start-up; a value that is neither an on nor an off spelling logs a warning and leaves the setting on. |
 
 ---
 
@@ -1054,6 +1057,17 @@ These variables back a flag; the flag wins when both are set.
 | `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY` | Standard proxy variables (upper- or lowercase), used by outbound MCP connections whose server entry sets no `proxy:`. `MCP_HTTP_PROXY`, `MCP_HTTPS_PROXY`, and `MCP_NO_PROXY` are not read in v1.11.0. See [MCP Configuration](#mcp-configuration). |
 | `OPENAI_ADMIN_KEY`, `XAI_ADMIN_KEY`, `ANTHROPIC_ADMIN_KEY`, `GEMINI_ADMIN_KEY` | Key used to list an external provider's models when a provider worker is registered. Takes precedence over `--api-key`. |
 
+### Routing Trace Variables
+
+Opt-in evidence of the gateway's routing decisions for requests served through the gRPC pipeline (gRPC and ZMQ workers). Each variable is read once, at the first request; no flag sets them. With both switches off, one request can still ask for its own record by sending the request header `x-smg-cache-trace: 1`.
+
+| Environment Variable | Default | Description |
+|---------------------|---------|-------------|
+| `SMG_CACHE_TRACE` | unset (off) | `1` logs every dispatch's routing evidence as an `INFO` line under the target `smg::cache_trace` with the message `Cache routing dispatch` and the record as JSON in its `evidence` field: the candidates with their load and health, the policy, the chosen worker, the engine request ids and, under cache-aware routing, the gates, scores and overlap prediction. A request that fails logs a `Cache routing failure` line with the selections captured so far and the status. Any other value leaves the log line off. |
+| `SMG_CACHE_TRACE_HEADER` | unset (off) | `1` returns each dispatch's decision record in the `x-smg-cache-trace` response header: the request and dispatch ids, the attempt, the engine ids and, per selection, the policy, origin, worker and prediction; with or without the log line. A record longer than 2048 bytes or not plain ASCII is omitted and an `INFO` line says so. Any other value leaves the header off. |
+| `SMG_CACHE_TRACE_SAMPLE` | `1` (every dispatch) | With `SMG_CACHE_TRACE=1`, log one dispatch in every N, counted per process. The response header and the failure line are not sampled. `0` or a non-number reads as `1`. |
+| `SMG_CACHE_TRACE_MAX_BYTES` | unset (no cap) | A log line longer than this many bytes drops its candidate, score and gate lists (each selection keeps the count of what it dropped) and is marked `capped`; the decision record stays. The header is not capped by it. A non-number reads as no cap. |
+
 ### Multimodal Variables
 
 Described in [Multimodal Configuration](#multimodal-configuration).
@@ -1067,6 +1081,19 @@ Described in [Multimodal Configuration](#multimodal-configuration).
 | `SMG_VIDEO_PROCESS_TIMEOUT_SECS`, `SMG_AUDIO_PROCESS_TIMEOUT_SECS`, `SMG_VIDEO_DECODE_BACKEND`, `SMG_AUDIO_DECODE_BACKEND` | Media decoding |
 | `SMG_IMAGE_MAX_COUNT`, `SMG_VIDEO_MAX_COUNT`, `SMG_AUDIO_MAX_COUNT` | Per-request media counts |
 | `SMG_VLLM_ENCODER_INPUT_DTYPE`, `SMG_TOKENSPEED_ENCODER_INPUT_DTYPE`, `SMG_TOKENSPEED_IMAGE_ENCODER_INPUT_DTYPE`, `SMG_TOKENSPEED_VIDEO_ENCODER_INPUT_DTYPE`, `SMG_TOKENSPEED_AUDIO_ENCODER_INPUT_DTYPE` | Encoder input wire dtype |
+| `SMG_MM_THREADS`, `SMG_MM_ONE_PASS_WIRE`, `SMG_VIDEO_MAX_DECODE_PIXELS` | Preprocessing pool size, the one-pass wire write switch, and the cap on one video decode's work |
+
+### Engine Servicer Variables
+
+Read from the worker's environment by the Rust engine servicers (see [gRPC Workers](../getting-started/grpc-workers.md)), not by the gateway; none has a flag.
+
+| Environment Variable | Default | Description |
+|---------------------|---------|-------------|
+| `SMG_SERVICER_WORKER_THREADS` | `1` | Worker threads of the servicer's async runtime, read when the servicer starts. One thread carries tens of thousands of tokens per second at the same inter-token latency as several, in less CPU per token: with more threads every per-token send contends for the lock of the one HTTP/2 connection the gateway holds. A positive integer; anything else reads as the default. |
+| `SMG_KV_EVENT_RELAY_START` | subscribe at start | When the servicer's KV-event relay subscribes to the engine's event publishers. By default it subscribes as soon as the servicer serves, probing the publisher's port every second until the engine binds it, so the relay's history covers the engine from its first batch and a reconnecting gateway is served from it. `lazy` defers the subscription to the first `SubscribeKvEvents` call, for a memory-constrained host; nothing is recorded before then. See [KV Events Cache-Aware Routing](../getting-started/kv-events-cache-aware.md#recovery-after-gaps). |
+| `SMG_KV_EVENT_HISTORY_BATCHES` | `10000` | Relayed batches the relay keeps per publisher rank: the window a reconnecting gateway resumes from. A resume cursor older than the window is refused, and the gateway then resubscribes from zero and receives a snapshot of the engine's live blocks instead. A non-number logs a warning and keeps the default. |
+| `SMG_KV_EVENT_HISTORY_BYTES` | `268435456` (256 MiB) | Byte budget of that history over the encoded batches, per publisher rank; the oldest batches leave when either cap is exceeded. A non-number logs a warning and keeps the default. |
+| `SMG_KV_EVENT_HASH_CHECK` | unset (off) | `sglang` or `vllm-sha256-cbor` (any case) makes the relay recompute the engine's own block hash for every stored block it can verify and count the mismatches in its counters, which it logs with its summary every 500 relayed batches and when it closes. Nothing is dropped for it. The Python servicer's relay reads the same variable and values. An unknown value logs a warning and leaves the check off. |
 
 ### Python Launcher Variables
 

@@ -274,6 +274,7 @@ The event index holds what the engines report: block-removed and all-blocks-clea
 | `--balance-token-usage-threshold` / `--overload-token-usage-threshold` | SMG | Suspend cache affinity under KV pressure (off by default). |
 | `replay_endpoint` / `buffer_steps` | `--kv-events-config` | Enable gap replay; raise `buffer_steps` (SGLang and vLLM only) if gaps go unfilled because the missed batches already left the buffer. |
 | `hwm` | `--kv-events-config` | Raise if events are dropped under bursty load. |
+| `SMG_KV_EVENT_HISTORY_BATCHES` / `SMG_KV_EVENT_HISTORY_BYTES` | Rust servicer environment | How much relayed history a Rust servicer keeps per rank for a reconnecting gateway to resume from; see [Engine Servicer Variables](../reference/configuration.md#engine-servicer-variables). |
 
 `--cache-threshold` does not apply to event-driven routing: any worker holding at least the request's first full block is a candidate. See [Cache-Aware Routing](../concepts/routing/cache-aware.md#tuning-knobs) for the full list of knobs.
 
