@@ -132,12 +132,12 @@ The event-driven options apply when workers publish KV cache events; see [KV Eve
 
 ### Least Load Policy Options
 
-These apply wherever `least_load` is the policy, including as `--prefill-policy` or `--decode-policy`. The policy routes to the worker with the lowest expected wait, `(queued_tokens + inflight_tokens) / throughput + kv_pressure_weight × k / (1 − k)`, where `k` is the worker's KV-cache usage.
+These apply wherever `least_load` is the policy, including as `--prefill-policy` or `--decode-policy`. The policy routes to the worker with the lowest expected wait, `(queued_tokens + inflight_tokens) / throughput + kv_pressure_weight × k / (1 − k)`, where `k` is the worker's KV-cache usage and `throughput` is the worker's live output rate, or, for a prefill worker, the configured input rate (a prefill wait does not depend on how fast the worker generates).
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--least-load-kv-pressure-weight` | `0.15` | Weight (in seconds) of the KV-pressure term. Must be finite and at least 0. |
-| `--least-load-default-throughput` | `2000` | Fallback generation throughput (tokens/s) when a backend reports no live throughput. Set it to the fleet's per-replica generation rate. Must be greater than 0. |
+| `--least-load-default-throughput` | `2000` | Input throughput (tokens/s) assumed for prefill workers, and the fallback output throughput for other workers when no candidate reports a live rate. Set it to the per-replica input rate for prefill, the output rate otherwise; the CLI shares one value across the roles (separate prefill and decode values need a programmatically built router configuration). Must be greater than 0. |
 | `--least-load-mean-prefill-tokens` | `1024` | Prefill length assumed for the in-flight estimate when a request's token count is unknown at routing time. Must be greater than 0. |
 | `--least-load-max-waiting-requests` | `0` | Per-worker waiting-queue cap: skip workers whose reported waiting requests, plus dispatches since their last poll, have reached this count. When every candidate is at the cap, the policy selects no worker rather than deepening an engine backlog. Set it below the engine's max batch size. `0` disables the cap. |
 
