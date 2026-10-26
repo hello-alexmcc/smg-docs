@@ -410,18 +410,21 @@ Registration of a ZMQ worker fails when the runtime is not `vllm`, `tokenspeed`,
 
 `health`, `http_pool`, and `resilience` take effect but are not echoed back by `GET /workers`; `overload` is.
 
-!!! warning "Accepted but not applied"
-    v1.11.0 accepts these fields without an error, but a worker registered through this API does not use them:
+!!! note "Applied since v1.12.0"
+    v1.11.0 accepted these fields without using them. Since v1.12.0 a worker keeps the spec it was registered with, so they apply:
+
+    - `provider`: checked against the provider routers compiled into the build (see `PROVIDER_NOT_COMPILED` under [Worker Errors](#worker-errors)) and kept on the worker's spec. For a provider behind a host the gateway does not recognize, set `runtime_type` to `external`.
+    - `kv_role`: the field wins over a `kv_role` label. vLLM gRPC engines report it themselves.
+    - `pairing_protocol`: the field wins over a `pairing_protocol` label (which `SMG_PAIRING_PROTOCOL` in a gRPC engine's environment also sets).
+    - `multimodal_tensor_transport` and `multimodal_shm_min_bytes`: consulted for the worker that runs the vision encoder (the encode worker in EPD); the gateway-wide `--multimodal-tensor-transport` and `--multimodal-shm-min-bytes` are the defaults (see [Multimodal](../../concepts/architecture/multimodal.md)).
+    - `load_monitor_interval_secs`: a worker group polls at the smallest value its workers set, `--load-monitor-interval` when none does, never under one second.
+    - `kv_block_size`: seeds the model's block size until the engine's KV event stream names it.
+    - The `resilience` retry fields (`max_retries`, `initial_backoff_ms`, `max_backoff_ms`, `backoff_multiplier`, `jitter_factor`, `disable_retry`) and `disable_circuit_breaker`: they build the worker's retry and circuit-breaker settings at registration, over the gateway-wide `--retry-*`, `--disable-retries`, and `--disable-circuit-breaker` flags.
+
+    Still not applied, on current main as in v1.11.0:
 
     - `connection_mode`: the URL scheme decides the transport, and responses report the result (`http`, `grpc`, or `zmq`).
-    - `provider`: only checked against the provider routers compiled into the build (see `PROVIDER_NOT_COMPILED` under [Worker Errors](#worker-errors)); it is not kept on the worker. For a provider behind a host the gateway does not recognize, set `runtime_type` to `external`.
-    - `kv_role`: set a `kv_role` label instead. vLLM gRPC engines report it themselves.
-    - `pairing_protocol`: set a `pairing_protocol` label instead, or `SMG_PAIRING_PROTOCOL` in the engine's environment for gRPC engines.
-    - `multimodal_tensor_transport` and `multimodal_shm_min_bytes`: use the gateway-wide `--multimodal-tensor-transport` and `--multimodal-shm-min-bytes` (see [Multimodal](../../concepts/architecture/multimodal.md)).
-    - `load_monitor_interval_secs`: use `--load-monitor-interval`.
-    - `kv_block_size`: the engine's KV event stream reports the block size.
-    - `max_connection_attempts`: unused, and responses always show the default `20`; registration keeps probing until `--worker-startup-timeout-secs`.
-    - The `resilience` retry fields (`max_retries`, `initial_backoff_ms`, `max_backoff_ms`, `backoff_multiplier`, `jitter_factor`, `disable_retry`) and `disable_circuit_breaker`: use the gateway-wide `--retry-*`, `--disable-retries`, and `--disable-circuit-breaker` flags.
+    - `max_connection_attempts`: not read; registration keeps probing until `--worker-startup-timeout-secs`. A worker from the command line or service discovery is registered with ten times `--health-success-threshold` (`20` by default), which responses show; a worker registered through this API echoes the value it was given.
     - `dp_base_url`, `dp_rank`, and `dp_size` (except on ZMQ workers): the gateway sets them on data-parallel workers under `--dp-aware`.
 
 ---

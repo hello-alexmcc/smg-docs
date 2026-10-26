@@ -185,7 +185,7 @@ smg launch \
 
 ### Per-Worker Overrides
 
-The worker spec's `resilience` block accepts retry fields (`max_retries`, `initial_backoff_ms`, `max_backoff_ms`, `backoff_multiplier`, `jitter_factor`, and `disable_retry`), but in v1.11.0 they have no effect. Worker registration leaves them out of the spec it stores on the worker, and a per-model retry policy is only created from retry fields in that stored spec, so none is created and every request uses the router flags above. Use `--retry-*` and `--disable-retries` instead.
+The worker spec's `resilience` block accepts retry fields (`max_retries`, `initial_backoff_ms`, `max_backoff_ms`, `backoff_multiplier`, `jitter_factor`, and `disable_retry`), and since v1.12.0 they apply: the worker keeps the spec it was registered with, and the retry fields set that model's retry policy at registration; the `--retry-*` flags and `--disable-retries` remain the defaults. In v1.11.0 registration left them out of the stored spec, so no per-model policy was created and every request used the router flags.
 
 The same block's circuit-breaker settings do apply, including two status-code lists that affect the circuit breaker, not retries: `retryable_status_codes` (statuses counted as circuit-breaker failures) and `capacity_status_codes` (statuses treated as capacity pushback). Narrowing either list never makes a status non-retryable. See [Interaction with Circuit Breakers](#interaction-with-circuit-breakers).
 
