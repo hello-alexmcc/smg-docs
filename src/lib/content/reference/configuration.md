@@ -128,7 +128,7 @@ Routing flags configure the default policy (`--policy`). In PD mode, `--prefill-
 | `--kv-indexer-ttl-secs` | unset | Deprecated and ignored: the TTL prune of the positional indexer, which the chain index replaced. The chain index holds what the engines report and shrinks with their removals, so it has no prune. The flag is still accepted so existing launch lines keep working; a value above `0` logs a warning at start-up under cache-aware routing. Goes in a later release; drop it from launch lines. |
 | `--kv-indexer-max-entries` | unset | Deprecated and ignored: the capacity ceiling of the positional indexer's prune, gone with it; accepted and warned about like `--kv-indexer-ttl-secs`. Goes in a later release. |
 
-The event-driven options apply when workers publish KV cache events; see [KV Events Cache-Aware Routing](../getting-started/kv-events-cache-aware.md). `--kv-index` is deprecated: the chain index is the only KV index behind cache-aware routing, so the flag takes `chain` only and does nothing (`positional` names the index that was removed and is refused); it goes in a later release.
+The event-driven options apply when workers publish KV cache events; see [KV Events Cache-Aware Routing](../getting-started/kv-events-cache-aware.md). The chain index is the only KV index behind cache-aware routing; `--kv-index`, which once selected one, is gone with the positional index it named, and the `smg` binary refuses a launch line that still carries it as an unknown argument.
 
 ### Least Load Policy Options
 
