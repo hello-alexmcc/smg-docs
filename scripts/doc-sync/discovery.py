@@ -34,7 +34,7 @@ SHARDS = [
     ("deploy-config", "Installation, Helm/Kubernetes, Docker, CLI flags, configuration and releases; not internal runtime implementation details owned by other scans.",
      ["deploy", "docker", "model_gateway/src/config", "model_gateway/src/main.rs", "model_gateway/src/lib.rs", "model_gateway/src/cli.rs", "Cargo.toml", "bindings"]),
     ("operations", "Observability, metrics, logging, mesh, benchmarks, testing/contributor workflows and other user-facing changes outside the other responsibilities.",
-     ["model_gateway/src/observability", "model_gateway/src/mesh", "model_gateway/src/mesh_discovery", "crates/mesh", "scripts", "examples", "e2e_test", ".github", "Makefile"]),
+     ["model_gateway/src/observability", "model_gateway/src/mesh", "crates/mesh", "scripts", "examples", "e2e_test", ".github", "Makefile"]),
 ]
 
 

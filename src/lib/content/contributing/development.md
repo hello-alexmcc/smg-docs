@@ -183,8 +183,7 @@ smg/
 │   │   ├── policies/           # Load-balancing policies
 │   │   ├── worker/             # Worker registry, health, circuit breakers, load monitoring
 │   │   ├── service_discovery/  # Kubernetes worker discovery
-│   │   ├── mesh/               # HA mesh adapters (crates/mesh does the gossip)
-│   │   ├── mesh_discovery/     # Router-peer discovery for the mesh
+│   │   ├── mesh/               # HA mesh adapters (crates/mesh does the gossip); discovery/ finds router peers
 │   │   ├── middleware/         # Auth, request IDs, concurrency limits, admission scheduler
 │   │   ├── rate_limit/         # Per-tenant token and request rate limiting
 │   │   ├── endpoints/          # Non-inference endpoints: models, tokenize, parse, conversations, responses
@@ -192,7 +191,7 @@ smg/
 │   │   ├── observability/      # Logging, metrics, and tracing
 │   │   ├── wasm/               # WASM plugin support
 │   │   ├── health.rs           # Liveness and readiness endpoints
-│   │   ├── tenant.rs           # Tenant identity
+│   │   ├── tenant/             # Tenant identity, keys, and per-request metadata
 │   │   ├── rl_adapter.rs       # Glue to the RL control plane (crates/rl)
 │   │   └── version.rs          # Version information
 │   ├── tests/                  # Integration tests
