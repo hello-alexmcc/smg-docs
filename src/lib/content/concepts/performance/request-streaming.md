@@ -54,7 +54,7 @@ Buffering a request means the router holds the whole body in memory, first as a 
 
 Streaming forwards the client's bytes to the worker as they arrive. The router holds only the chunks in transit, backpressure flows end to end, and the worker starts receiving the body before the client has finished sending it.
 
-The trade-off: a streamed body cannot be replayed, so it gets a single attempt with no [router retries](../reliability/retries.md), and the router never reads it, so JSON validation happens at the worker.
+The trade-off: a streamed body cannot be replayed, so it gets a single attempt with no [router retries](../reliability/retries.md), and the router never reads it, so the request reaches the worker as the client sent it: JSON validation happens at the worker, and the request normalization the buffered path applies under a vendor provider profile (the stream usage default of the Kimi and MiniMax profiles, MiniMax's root-message merge, the vendor sampling and thinking defaults) is not applied.
 
 ---
 
@@ -98,6 +98,7 @@ Once a request is headed for the streamed path, the router selects a worker from
 |---|----------|----------|
 | Body sent to the worker | Re-serialized from the parsed request: a model alias becomes the canonical model ID, and DP-aware workers get their rank inserted | The client's bytes, unchanged, sent with `Content-Type: application/json` and no `Content-Length` header (chunked over HTTP/1.1) |
 | JSON validation | Router; an invalid request is rejected before it reaches a worker | Worker |
+| Provider profile request normalization (the stream usage default, the root-message merge, the vendor sampling and thinking defaults) | Router, from the profile the request's model selects | Not applied: the body is forwarded as sent |
 | Router retries | Yes, up to `--retry-max-retries` attempts | No: one attempt |
 | Worker selection input | Prompt text or token IDs, body `rid`, headers | Headers only, including an `x-smg-routing-tokens` or routing-key hint |
 | Size limit | `--max-payload-size` | `--max-payload-size`, counted while streaming |
