@@ -774,7 +774,7 @@ The connection uses `--oracle-dsn` when it is set; otherwise `--oracle-wallet-pa
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--postgres-db-url` | unset | Connection URL (`postgres://` or `postgresql://`, with a host and a database name). Required with `--history-backend postgres`. |
+| `--postgres-db-url` | unset | Connection URL (`postgres://` or `postgresql://`, with a host and a database name). Required with `--history-backend postgres`. Env: `SMG_POSTGRES_DB_URL`, read when the history backend is `postgres`; the flag wins, and a URL together with `--postgres-db-url-file` (or its variable) is refused. |
 | `--postgres-pool-max-size` | `16` | Maximum connection pool size. Must be greater than 0. |
 | `--postgres-db-url-file` | unset | File holding the connection URL alone, such as a mounted secret; surrounding whitespace is dropped. Read when the history backend is `postgres`. Env: `SMG_POSTGRES_DB_URL_FILE`. |
 | `--postgres-op-timeout-secs` | `5` | Bound in seconds on each call to the PostgreSQL store (pool wait, connect and the statement); a call past it is answered `503 storage_unavailable`. |
@@ -783,13 +783,13 @@ The connection uses `--oracle-dsn` when it is set; otherwise `--oracle-wallet-pa
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--redis-url` | unset | Connection URL (`redis://`, with a host). Required with `--history-backend redis`. A `rediss://` URL passes validation, but v1.11.0 is built without Redis TLS support, so startup fails. |
+| `--redis-url` | unset | Connection URL (`redis://`, with a host). Required with `--history-backend redis`. A `rediss://` URL passes validation, but v1.11.0 is built without Redis TLS support, so startup fails. Env: `SMG_REDIS_URL`, read when the history backend is `redis`; the flag wins, and a URL together with `--redis-url-file` (or its variable) is refused. |
 | `--redis-pool-max-size` | `16` | Maximum connection pool size. Must be greater than 0. |
 | `--redis-retention-days` | `30` | Data retention in days. `-1` (any negative value) keeps data persistently. |
 | `--redis-url-file` | unset | File holding the connection URL alone, such as a mounted secret; surrounding whitespace is dropped. Read when the history backend is `redis`. Env: `SMG_REDIS_URL_FILE`. |
 | `--redis-op-timeout-secs` | `5` | Bound in seconds on each call to the Redis store (pool wait, connect and the command; it replaces the client library's 500 ms and 1 s defaults); a call past it is answered `503 storage_unavailable`. |
 
-The Rust CLI declares no environment variables for the PostgreSQL or Redis URLs themselves (the `*-url-file` flags above read `SMG_POSTGRES_DB_URL_FILE` and `SMG_REDIS_URL_FILE`). `POSTGRES_DB_URL`, `POSTGRES_POOL_MAX`, `REDIS_URL`, `REDIS_POOL_MAX`, and `REDIS_RETENTION_DAYS` are read only by the [Python launcher](#python-launcher-differences).
+The Rust CLI reads each URL from its flag, else from `SMG_POSTGRES_DB_URL` or `SMG_REDIS_URL`, else from the file that the `*-url-file` flag or `SMG_POSTGRES_DB_URL_FILE` / `SMG_REDIS_URL_FILE` names, for the selected history backend only. A URL together with a URL file is refused rather than ranked; surrounding whitespace is dropped from a URL set in the environment or read from a file; the startup log records where each URL came from, never its value. See [Store URLs from the environment or a file](../getting-started/data-connections.md#store-urls-from-the-environment-or-a-file). `POSTGRES_DB_URL`, `POSTGRES_POOL_MAX`, `REDIS_URL`, `REDIS_POOL_MAX`, and `REDIS_RETENTION_DAYS` are read only by the [Python launcher](#python-launcher-differences).
 
 ### Memory Backend
 
@@ -871,10 +871,10 @@ Authentication for the admin routes: worker management, cache and tokenizer oper
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--api-key` | unset | Shared gateway API key. When set, the inference routes require `Authorization: Bearer <key>` (or a `--tenant-api-key` key) and return `401` otherwise; public routes such as `/health` and `/v1/models` stay open. The admin routes accept it when no control plane authentication is configured. It is also attached to every startup and discovered worker as that worker's API key, and the gateway sends it to the worker (as `Authorization: Bearer <key>` for local workers) when the client request carries no `Authorization` header of its own. |
+| `--api-key` | unset | Shared gateway API key. When set, the inference routes require `Authorization: Bearer <key>` (or a `--tenant-api-key` key) and return `401` otherwise; public routes such as `/health` and `/v1/models` stay open. The admin routes accept it when no control plane authentication is configured. It is also attached to every startup and discovered worker as that worker's API key, and the gateway sends it to the worker (as `Authorization: Bearer <key>` for local workers) when the client request carries no `Authorization` header of its own. Env: `SMG_API_KEY`; the flag wins, and a key together with `--api-key-file` (or its variable) is refused. |
 | `--api-key-file` | unset | File holding the shared API key alone, such as a mounted secret; surrounding whitespace is dropped. Env: `SMG_API_KEY_FILE`. |
 | `--tenant-api-keys-file` | unset | File holding the per-tenant keys, one `tenant_id:key` per line (blank lines and lines starting with `#` are skipped), such as a mounted secret. Env: `SMG_TENANT_API_KEYS_FILE`. |
-| `--tenant-api-key` | none | Per-tenant key as `tenant_id:key`, one per flag. Layers on top of `--api-key`; each key resolves to its own tenant identity (`auth:<tenant_id>`), which tenant rate limits and the priority scheduler use. Tenant keys never unlock the admin routes: with tenant keys but no `--api-key` and no control plane authentication, the admin routes return `401`. An entry without `:` fails startup, as do empty values and a key value used twice (including one equal to `--api-key`). |
+| `--tenant-api-key` | none | Per-tenant key as `tenant_id:key`, one per flag. Layers on top of `--api-key`; each key resolves to its own tenant identity (`auth:<tenant_id>`), which tenant rate limits and the priority scheduler use. Tenant keys never unlock the admin routes: with tenant keys but no `--api-key` and no control plane authentication, the admin routes return `401`. An entry without `:` fails startup, as do empty values and a key value used twice (including one equal to `--api-key`). Env: `SMG_TENANT_API_KEYS`, with the `tenant_id:key` entries separated by `,` or newlines (a variable that is set but holds no entry is refused); the flag wins, and entries together with `--tenant-api-keys-file` (or its variable) are refused. |
 
 **Example**:
 ```bash
@@ -1022,7 +1022,7 @@ smg launch \
 - **Python-only flags:** `--control-plane-audit-enabled` (audit logging is off unless set, while the Rust CLI enables it and offers `--disable-audit-logging`), and the `--no-remove-unhealthy-workers` / `--no-worker-auto-recovery` forms in place of `=false`. The mTLS flags toward workers (`--client-cert-path`, `--client-key-path`, `--ca-cert-paths`) and `--bucket-adjust-interval-secs` (default `5`) are in both.
 - **Flags with a second spelling:** the Python parser accepts the Rust names and, beside them, `--eviction-interval-secs`, `--oracle-connect-descriptor`, `--oracle-username`, `--postgres-pool-max` and `--redis-pool-max`. `--eviction-interval` defaults to `60` in Python and `120` in the Rust CLI. When both a TNS alias and a DSN are given, Python uses the alias, while the Rust CLI uses the DSN.
 - **Different values:** `--policy` and `--decode-policy` do not accept `bucket` (`--prefill-policy` does). `--backend` accepts only `sglang`, `vllm`, `tokenspeed`, `openai`, and `anthropic`, and defaults to `sglang`, which behaves like leaving the Rust flag unset. `--reasoning-parser` and `--tool-call-parser` are checked against the registered names at parse time.
-- **Environment variables:** Python reads `SMG_POSTGRES_DB_URL` (or the older `POSTGRES_DB_URL`), `SMG_REDIS_URL` (or the older `REDIS_URL`), `POSTGRES_POOL_MAX`, `REDIS_POOL_MAX`, and `REDIS_RETENTION_DAYS` as defaults for its storage flags; the Rust CLI reads none of them, only the two file fallbacks `SMG_POSTGRES_DB_URL_FILE` and `SMG_REDIS_URL_FILE`. Both read the Oracle `ATP_*` variables. `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_JWKS_URI`, and `CONTROL_PLANE_API_KEYS` are Rust-only.
+- **Environment variables:** Python reads `SMG_POSTGRES_DB_URL` (or the older `POSTGRES_DB_URL`), `SMG_REDIS_URL` (or the older `REDIS_URL`), `POSTGRES_POOL_MAX`, `REDIS_POOL_MAX`, and `REDIS_RETENTION_DAYS` as defaults for its storage flags; the Rust CLI reads `SMG_POSTGRES_DB_URL` and `SMG_REDIS_URL` as well (and the file variables `SMG_POSTGRES_DB_URL_FILE` and `SMG_REDIS_URL_FILE`), not the older names and not the pool or retention variables. Both read the Oracle `ATP_*` variables. `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_JWKS_URI`, and `CONTROL_PLANE_API_KEYS` are Rust-only.
 - **Multiple values:** `--control-plane-api-keys` and `--jwt-role-mapping` accept several values after one flag in Python; the Rust CLI takes one value per flag.
 - **Not available in Python:** `--disable-audit-logging`, `--kv-indexer-ttl-secs`, `--kv-indexer-max-entries`, and the hidden `--runtime` alias of `--backend`. The drain, engine-metrics, JWT role claim, PD pairing, priority-scheduler, runtime-thread, tenant-key, tenant-header, tenant-rate-limit and WebRTC flags, once Python gaps, are in both.
 
@@ -1190,7 +1190,7 @@ smg launch \
 
 ### Flag Variables
 
-These variables back a flag; the flag wins when both are set.
+These variables back a flag; the flag wins when both are set. For the eight `SMG_*` secret variables, a value (from the flag or its variable) together with a file (from the file flag or its variable) is refused at startup rather than ranked.
 
 | Environment Variable | CLI Option | Description |
 |---------------------|------------|-------------|
@@ -1207,6 +1207,14 @@ These variables back a flag; the flag wins when both are set.
 | `JWT_AUDIENCE` | `--jwt-audience` | JWT audience |
 | `JWT_JWKS_URI` | `--jwt-jwks-uri` | JWKS URI |
 | `CONTROL_PLANE_API_KEYS` | `--control-plane-api-keys` | Control plane API key (`id:name:role:key`) |
+| `SMG_API_KEY` | `--api-key` | Shared data plane API key |
+| `SMG_API_KEY_FILE` | `--api-key-file` | File holding the shared API key alone |
+| `SMG_TENANT_API_KEYS` | `--tenant-api-key` | Per-tenant keys, `tenant_id:key` entries separated by `,` or newlines |
+| `SMG_TENANT_API_KEYS_FILE` | `--tenant-api-keys-file` | File holding the per-tenant keys, one per line |
+| `SMG_POSTGRES_DB_URL` | `--postgres-db-url` | PostgreSQL connection URL, read with `--history-backend postgres` |
+| `SMG_POSTGRES_DB_URL_FILE` | `--postgres-db-url-file` | File holding the PostgreSQL connection URL alone |
+| `SMG_REDIS_URL` | `--redis-url` | Redis connection URL, read with `--history-backend redis` |
+| `SMG_REDIS_URL_FILE` | `--redis-url-file` | File holding the Redis connection URL alone |
 
 ### Gateway Settings
 
