@@ -77,7 +77,7 @@ With graceful shutdown:
 5. **Drain in-flight requests** — existing requests, including streaming responses, continue while SMG waits for them for the rest of the grace period. When that runs out, SMG shuts down with any remaining requests still in flight.
 6. **Clean exit** — once all requests complete (or the grace period expires), background components are cleaned up (worker and mesh discovery tasks, the MCP orchestrator) and the process exits.
 
-The settle window is carved out of the grace period, so the whole sequence stays within `--shutdown-grace-period-secs`. At the default of 180 seconds, the settle window is 5 seconds and in-flight requests get up to 175 seconds.
+The settle window is `--shutdown-settle-secs` long (5 seconds by default) and is carved out of the grace period, capped at half of it, so the whole sequence stays within `--shutdown-grace-period-secs`. At the defaults of 180 and 5 seconds, in-flight requests get up to 175 seconds. `--shutdown-settle-secs 0` skips the window.
 
 ---
 
@@ -93,7 +93,8 @@ smg \
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `--shutdown-grace-period-secs` | `180` (3 min) | Total shutdown budget: the settle window (half of it, at most 5 seconds) plus the wait for in-flight requests |
+| `--shutdown-grace-period-secs` | `180` (3 min) | Total shutdown budget: the settle window plus the wait for in-flight requests |
+| `--shutdown-settle-secs` | `5` | Settle window: how long the listener keeps accepting connections after the signal, capped at half the grace period; `0` skips it |
 
 ---
 
@@ -236,7 +237,7 @@ For zero-downtime deployments, coordinate with your load balancer:
 
 ### Pre-Stop Hook (Kubernetes)
 
-SMG already keeps accepting connections for up to 5 seconds after the signal while `/readiness` reports `503`. If your load balancer needs longer to stop sending traffic, add a pre-stop hook that delays the signal:
+SMG already keeps accepting connections for the settle window (`--shutdown-settle-secs`, 5 seconds by default) after the signal while `/readiness` reports `503`. If your load balancer needs longer to stop sending traffic, add a pre-stop hook that delays the signal:
 
 ```yaml
 spec:
